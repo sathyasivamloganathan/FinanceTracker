@@ -24,7 +24,7 @@ const rateLimit = require('express-rate-limit');
 // standard baseline, not a guarantee.
 
 function applySecurity(app) {
-  app.set('trust proxy', 1);
+  app.set("trust proxy", true);
 
   app.use(
     helmet({
@@ -63,7 +63,12 @@ const generalLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many requests, please slow down.' },
+
+  keyGenerator: (req) => {
+    return req.ip.replace(/^::ffff:/, "").split(":")[0];
+  },
+
+  message: { error: "Too many requests, please slow down." },
 });
 
 // Tighter limiter specifically for login/register to blunt brute-force / credential stuffing
@@ -72,7 +77,12 @@ const authLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many attempts, please try again later.' },
+
+  keyGenerator: (req) => {
+    return req.ip.replace(/^::ffff:/, "").split(":")[0];
+  },
+
+  message: { error: "Too many attempts, please try again later." },
 });
 
 module.exports = { applySecurity, generalLimiter, authLimiter };
