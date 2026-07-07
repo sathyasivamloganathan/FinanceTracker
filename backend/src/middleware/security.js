@@ -40,7 +40,13 @@ function applySecurity(app) {
   app.use(
     cors({
       origin(origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+        console.log("CLIENT_ORIGINS ENV:", process.env.CLIENT_ORIGINS);
+        console.log("REQUEST ORIGIN:", origin);
+
+        if (!origin || allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+
         return callback(new Error('Not allowed by CORS'));
       },
       credentials: true,
