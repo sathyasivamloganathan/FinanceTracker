@@ -57,8 +57,9 @@ function applySecurity(app) {
   app.use(hpp());
 }
 
-const ipKeyGenerator = require("express-rate-limit").ipKeyGenerator;
-
+function ipKeyGenerator(ip) {
+  return ip?.replace(/:\d+$/, "") || "unknown";
+}
 // General limiter for all API traffic
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
