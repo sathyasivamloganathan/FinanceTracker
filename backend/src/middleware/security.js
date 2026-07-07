@@ -57,6 +57,8 @@ function applySecurity(app) {
   app.use(hpp());
 }
 
+const ipKeyGenerator = require("express-rate-limit").ipKeyGenerator;
+
 // General limiter for all API traffic
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -65,13 +67,12 @@ const generalLimiter = rateLimit({
   legacyHeaders: false,
 
   keyGenerator: (req) => {
-    return req.ip.replace(/^::ffff:/, "").split(":")[0];
+    return ipKeyGenerator(req.ip);
   },
 
   message: { error: "Too many requests, please slow down." },
 });
 
-// Tighter limiter specifically for login/register to blunt brute-force / credential stuffing
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -79,7 +80,7 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 
   keyGenerator: (req) => {
-    return req.ip.replace(/^::ffff:/, "").split(":")[0];
+    return ipKeyGenerator(req.ip);
   },
 
   message: { error: "Too many attempts, please try again later." },
