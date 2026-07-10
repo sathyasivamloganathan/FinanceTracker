@@ -125,7 +125,7 @@ function startCronJobs() {
     syncAllUsers().catch((err) => console.error('[cron] price sync failed:', err));
   });
 
-  cron.schedule('0 8 * * *', () => {
+  cron.schedule('* * * * *', () => {
     sendMonthlySummaries().catch((err) => console.error('[cron] monthly summary failed:', err));
     sendDeadlineReminders().catch((err) => console.error('[cron] deadline reminders failed:', err));
   });
