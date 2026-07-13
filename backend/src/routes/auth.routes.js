@@ -14,12 +14,8 @@ const COOKIE_NAME = 'token';
 function cookieOptions() {
   return {
     httpOnly: true, // not readable by page JavaScript -> blocks token theft via XSS
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production — required for sameSite:'none' below
-    // 'none' is required when frontend and backend are on different domains
-    // (e.g. Vercel + Azure) so the cookie is sent on cross-site fetch() calls.
-    // Locally (same-site, different port) 'lax' still works and is slightly
-    // stricter, so we only relax it in production.
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    sameSite: 'lax', // sent on top-level navigation, blocked on most cross-site requests -> CSRF mitigation
     maxAge: Number(process.env.COOKIE_MAX_AGE_MS) || 7 * 24 * 60 * 60 * 1000,
     path: '/',
   };
