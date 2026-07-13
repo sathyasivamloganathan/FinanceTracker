@@ -7,7 +7,7 @@ import { Amount } from '@/lib/PrivacyContext';
 import Modal, { ModalActions } from '@/components/Modal';
 import EditableNumber from '@/components/EditableNumber';
 import { IconPlus, IconTrash } from '@/components/Icons';
-import { fmtINR, totalLiabilities } from '@/lib/utils';
+import { fmtINR, totalLiabilities, confirmDelete } from '@/lib/utils';
 import { LIABILITY_TYPES } from '@/lib/constants';
 
 export default function LiabilitiesSection() {
@@ -67,10 +67,10 @@ export default function LiabilitiesSection() {
                   </td>
                   <td className="num">{l.interestRate ? `${l.interestRate}%` : '—'}</td>
                   <td className="num">
-                    <EditableNumber value={l.amount} onCommit={(val) => updateLiability(l.id, { amount: val })} className={`${inputClass} w-[110px] text-right`} />
+                    <EditableNumber value={l.amount} onCommit={(val) => updateLiability(l.id, { amount: val })} className={`${inputClass} w-[130px] text-right`} />
                   </td>
                   <td>
-                    <IconBtn onClick={() => deleteLiability(l.id)}>
+                    <IconBtn onClick={() => confirmDelete(`Delete "${l.name}"?`) && deleteLiability(l.id)}>
                       <IconTrash />
                     </IconBtn>
                   </td>

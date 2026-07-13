@@ -24,7 +24,7 @@ const rateLimit = require('express-rate-limit');
 // standard baseline, not a guarantee.
 
 function applySecurity(app) {
-  app.set("trust proxy", true);
+  app.set('trust proxy', true);
 
   app.use(
     helmet({
@@ -40,13 +40,7 @@ function applySecurity(app) {
   app.use(
     cors({
       origin(origin, callback) {
-        console.log("CLIENT_ORIGINS ENV:", process.env.CLIENT_ORIGINS);
-        console.log("REQUEST ORIGIN:", origin);
-
-        if (!origin || allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
-
+        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
         return callback(new Error('Not allowed by CORS'));
       },
       credentials: true,
@@ -57,34 +51,22 @@ function applySecurity(app) {
   app.use(hpp());
 }
 
-function ipKeyGenerator(ip) {
-  return ip?.replace(/:\d+$/, "") || "unknown";
-}
 // General limiter for all API traffic
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
-
-  keyGenerator: (req) => {
-    return ipKeyGenerator(req.ip);
-  },
-
-  message: { error: "Too many requests, please slow down." },
+  message: { error: 'Too many requests, please slow down.' },
 });
 
+// Tighter limiter specifically for login/register to blunt brute-force / credential stuffing
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-
-  keyGenerator: (req) => {
-    return ipKeyGenerator(req.ip);
-  },
-
-  message: { error: "Too many attempts, please try again later." },
+  message: { error: 'Too many attempts, please try again later.' },
 });
 
 module.exports = { applySecurity, generalLimiter, authLimiter };

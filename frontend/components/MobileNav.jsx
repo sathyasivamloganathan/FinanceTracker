@@ -19,7 +19,7 @@ export default function MobileNav() {
           <Link
             key={s.id}
             href={s.href}
-            className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium ${active ? 'text-emerald' : 'text-inkMuted'}`}
+            className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium ${active ? 'text-accent' : 'text-inkMuted'}`}
           >
             <Icon />
             <span>{s.label}</span>

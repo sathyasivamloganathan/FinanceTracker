@@ -14,6 +14,8 @@ import {
   emergencyFundMonths,
   yearsToFI,
   recommendedTermCover,
+  ageFromDOB,
+  yearsToRetirement,
   fmtINR,
 } from '@/lib/utils';
 
@@ -29,13 +31,13 @@ function riskBadge(level) {
 
 export default function HealthCheckSection() {
   const { state, ready, updateFinancialProfile } = useFinance();
-  const [age, setAge] = useState('');
+  const [dob, setDob] = useState('');
   const [income, setIncome] = useState('');
   const [profileLoaded, setProfileLoaded] = useState(false);
 
   useEffect(() => {
     if (ready && state && !profileLoaded) {
-      setAge(state.financialProfile?.age ?? '');
+      setDob(state.financialProfile?.dateOfBirth ?? '');
       setIncome(state.financialProfile?.monthlyIncome ?? '');
       setProfileLoaded(true);
     }
@@ -55,6 +57,8 @@ export default function HealthCheckSection() {
   const years = savingsRatePct !== null ? yearsToFI(savingsRatePct) : null;
   const annualExpense = expense * 12;
   const idealTermCover = recommendedTermCover(annualExpense, nw);
+  const age = ageFromDOB(dob);
+  const retirementYears = yearsToRetirement(dob);
 
   function efLevel() {
     if (efMonths >= 6) return 'good';
@@ -75,26 +79,32 @@ export default function HealthCheckSection() {
   }
 
   function saveProfile() {
-    updateFinancialProfile({ age: age === '' ? '' : Number(age), monthlyIncome: income === '' ? '' : Number(income) });
+    updateFinancialProfile({ dateOfBirth: dob || '', monthlyIncome: income === '' ? '' : Number(income) });
   }
 
   return (
     <>
       <p className="text-inkMuted text-[13.5px] max-w-xl mb-4">
-        Pulled from what you've already tracked — your average monthly spend (last 3 months), liquid cash, and net worth. Age and
-        income are the only two things you enter here.
+        Pulled from what you've already tracked — your average monthly spend (months with something logged), liquid cash, and net
+        worth. Date of birth and income are the only two things you enter here.
       </p>
 
       <Card className="mb-5">
         <div className="font-display font-semibold text-[15px] mb-3">Financial profile</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field label="Age (optional)">
-            <input type="number" className={inputClass} placeholder="e.g. 30" value={age} onChange={(e) => setAge(e.target.value)} />
+          <Field label="Date of birth (optional)">
+            <input type="date" className={inputClass} value={dob} onChange={(e) => setDob(e.target.value)} />
           </Field>
           <Field label="Monthly income (optional)">
             <input type="number" className={inputClass} placeholder="e.g. 80000" value={income} onChange={(e) => setIncome(e.target.value)} />
           </Field>
         </div>
+        {age !== null && (
+          <p className="text-inkMuted text-xs mt-2">
+            Age {age}
+            {retirementYears !== null ? ` · ${retirementYears} year${retirementYears === 1 ? '' : 's'} to a typical retirement age of 60` : ''}
+          </p>
+        )}
         <Btn className="mt-3" variant="secondary" onClick={saveProfile}>
           Save
         </Btn>
@@ -164,7 +174,9 @@ export default function HealthCheckSection() {
         <div className="text-inkMuted text-xs mt-1">
           <Amount>{fmtINR(liabilities)}</Amount> owed vs <Amount>{fmtINR(assets)}</Amount> in assets
         </div>
-        <p className="text-inkMuted text-xs mt-3">{liabilities === 0 ? 'No liabilities tracked — nothing to worry about here.' : 'Generally, under 30% is comfortable; above 50% is worth a closer look.'}</p>
+        <p className="text-inkMuted text-xs mt-3">
+          {liabilities === 0 ? 'No liabilities tracked — nothing to worry about here.' : 'Generally, under 30% is comfortable; above 50% is worth a closer look.'}
+        </p>
       </Card>
     </>
   );

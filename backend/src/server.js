@@ -22,7 +22,6 @@ const exportRoutes = require('./routes/export.routes');
 const profileRoutes = require('./routes/profile.routes');
 
 const app = express();
-app.set("trust proxy", true);
 
 applySecurity(app);
 app.use(express.json({ limit: '200kb' }));

@@ -86,7 +86,7 @@ export default function AdvisorSection() {
 
   return (
     <>
-      <div className="border-l-[3px] border-brass bg-brassBg px-4 py-3 rounded-r-lg text-[12.5px] text-[#0B4A44] mb-6 leading-relaxed">
+      <div className="border-l-[3px] border-accent bg-accentBg px-4 py-3 rounded-r-lg text-[12.5px] text-[#1E3A8A] mb-6 leading-relaxed">
         Works on anything, not just what you already hold — type a name and prices in yourself (or pick an existing holding to
         prefill). It weighs only two things: whether this category is over/under-weight against your allocation targets, and how
         the price compares to what you paid, if anything. No valuation/trend/fundamentals guessing — ask in chat if you want an
@@ -178,7 +178,7 @@ export default function AdvisorSection() {
             {result.rows.map((f, i) => {
               const maxAbs = Math.max(2, ...result.rows.map((r) => Math.abs(r.score)));
               const pct = (Math.abs(f.score) / maxAbs) * 50;
-              const color = f.score > 0 ? '#276B47' : f.score < 0 ? '#AE4A2C' : '#707886';
+              const color = f.score > 0 ? '#059669' : f.score < 0 ? '#DC2626' : '#6B7280';
               const left = f.score >= 0 ? 50 : 50 - pct;
               const width = f.score === 0 ? 1 : pct;
               return (

@@ -5,24 +5,17 @@ import { useFinance } from '@/lib/FinanceContext';
 import { Card, Tag, EmptyState, Btn, IconBtn, Field, inputClass } from '@/components/ui';
 import { Amount } from '@/lib/PrivacyContext';
 import Modal, { ModalActions } from '@/components/Modal';
-import { IconPlus, IconTrash } from '@/components/Icons';
-import { fmtINR, dueStatus } from '@/lib/utils';
+import { IconPlus, IconTrash, IconEdit } from '@/components/Icons';
+import { fmtINR, dueStatus, confirmDelete } from '@/lib/utils';
 import { INSURANCE_TYPES, PREMIUM_FREQUENCIES } from '@/lib/constants';
 
+const BLANK_FORM = { name: '', type: 'Life', insurer: '', policyNumber: '', premium: '', frequency: 'Yearly', coverage: '', dueDate: '', notes: '' };
+
 export default function InsuranceSection() {
-  const { state, ready, addInsurance, deleteInsurance } = useFinance();
+  const { state, ready, addInsurance, updateInsurance, deleteInsurance } = useFinance();
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({
-    name: '',
-    type: 'Life',
-    insurer: '',
-    policyNumber: '',
-    premium: '',
-    frequency: 'Yearly',
-    coverage: '',
-    dueDate: '',
-    notes: '',
-  });
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(BLANK_FORM);
 
   if (!ready || !state) return null;
 
@@ -34,9 +27,30 @@ export default function InsuranceSection() {
     late: 'bg-clayBg text-clay',
   };
 
+  function openAdd() {
+    setEditingId(null);
+    setForm(BLANK_FORM);
+    setModalOpen(true);
+  }
+  function openEdit(p) {
+    setEditingId(p.id);
+    setForm({
+      name: p.name,
+      type: p.type,
+      insurer: p.insurer || '',
+      policyNumber: p.policyNumber || '',
+      premium: String(p.premium || ''),
+      frequency: p.frequency,
+      coverage: String(p.coverage || ''),
+      dueDate: p.dueDate || '',
+      notes: p.notes || '',
+    });
+    setModalOpen(true);
+  }
+
   function submit() {
     if (!form.name.trim()) return alert('Enter a policy name');
-    addInsurance({
+    const payload = {
       name: form.name.trim(),
       type: form.type,
       insurer: form.insurer.trim(),
@@ -46,35 +60,44 @@ export default function InsuranceSection() {
       coverage: Number(form.coverage) || 0,
       dueDate: form.dueDate,
       notes: form.notes.trim(),
-    });
-    setForm({ name: '', type: 'Life', insurer: '', policyNumber: '', premium: '', frequency: 'Yearly', coverage: '', dueDate: '', notes: '' });
+    };
+    if (editingId) updateInsurance(editingId, payload);
+    else addInsurance(payload);
     setModalOpen(false);
   }
 
   return (
     <>
+      <p className="text-inkMuted text-[13.5px] max-w-xl mb-4">
+        Premiums and coverage change at renewal — use the pencil icon to update an existing policy instead of adding a duplicate.
+      </p>
       {rows.length ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {rows.map((p) => {
             const status = dueStatus(p.dueDate);
             return (
               <Card key={p.id}>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-display text-[17px] font-semibold">{p.name}</div>
-                    <div className="text-inkMuted text-xs">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="min-w-0">
+                    <div className="font-display text-[17px] font-semibold truncate">{p.name}</div>
+                    <div className="text-inkMuted text-xs truncate">
                       {p.insurer || '—'} {p.policyNumber ? `· ${p.policyNumber}` : ''}
                     </div>
                   </div>
-                  <IconBtn onClick={() => deleteInsurance(p.id)}>
-                    <IconTrash />
-                  </IconBtn>
+                  <div className="flex items-center shrink-0">
+                    <IconBtn danger={false} onClick={() => openEdit(p)} title="Edit">
+                      <IconEdit />
+                    </IconBtn>
+                    <IconBtn onClick={() => confirmDelete(`Delete the policy "${p.name}"?`) && deleteInsurance(p.id)} title="Delete">
+                      <IconTrash />
+                    </IconBtn>
+                  </div>
                 </div>
-                <div className="my-3.5 flex gap-2 items-center">
+                <div className="my-3.5 flex gap-2 items-center flex-wrap">
                   <Tag>{p.type}</Tag>
                   <span className={`font-mono text-[10.5px] px-2 py-0.5 rounded-full ${badgeClass[status.cls]}`}>{status.label}</span>
                 </div>
-                <table className="text-[12.5px]">
+                <table className="text-[12.5px] w-full">
                   <tbody>
                     <tr>
                       <td className="text-inkMuted py-1">Premium</td>
@@ -84,7 +107,9 @@ export default function InsuranceSection() {
                     </tr>
                     <tr>
                       <td className="text-inkMuted py-1">Coverage</td>
-                      <td className="num mono"><Amount>{fmtINR(p.coverage)}</Amount></td>
+                      <td className="num mono">
+                        <Amount>{fmtINR(p.coverage)}</Amount>
+                      </td>
                     </tr>
                     <tr>
                       <td className="text-inkMuted py-1">Renewal date</td>
@@ -102,12 +127,12 @@ export default function InsuranceSection() {
       )}
 
       <div className="mt-4">
-        <Btn onClick={() => setModalOpen(true)}>
+        <Btn onClick={openAdd}>
           <IconPlus /> Add policy
         </Btn>
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Add insurance policy">
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit policy' : 'Add insurance policy'}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
           <Field label="Policy name">
             <input className={inputClass} placeholder="e.g. HDFC Life Term Plan" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -155,7 +180,7 @@ export default function InsuranceSection() {
           <Btn variant="secondary" onClick={() => setModalOpen(false)}>
             Cancel
           </Btn>
-          <Btn onClick={submit}>Add policy</Btn>
+          <Btn onClick={submit}>{editingId ? 'Save changes' : 'Add policy'}</Btn>
         </ModalActions>
       </Modal>
     </>

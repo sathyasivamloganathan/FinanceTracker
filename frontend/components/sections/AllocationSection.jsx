@@ -54,7 +54,7 @@ export default function AllocationSection() {
                 <YAxis type="category" dataKey="name" width={100} fontSize={11.5} />
                 <Tooltip formatter={(v) => v.toFixed(1) + '%'} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="Target" fill="#99F6E4" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="Target" fill="#BFDBFE" radius={[0, 4, 4, 0]} />
                 <Bar dataKey="Actual" fill="#1C2430" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -81,7 +81,7 @@ export default function AllocationSection() {
                   <tr key={cat}>
                     <td>{cat}</td>
                     <td className="num">
-                      <EditableNumber value={target} step="0.5" onCommit={(val) => updateTarget(cat, val)} className={`${inputClass} w-[65px] text-right`} />
+                      <EditableNumber value={target} step="0.5" maskable={false} onCommit={(val) => updateTarget(cat, val)} className={`${inputClass} w-[70px] text-right`} />
                     </td>
                     <td className="num">{actualPct.toFixed(1)}%</td>
                     <td className={`num ${Math.abs(drift) <= 3 ? '' : drift > 0 ? 'text-clay' : 'text-emerald'}`}>

@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
 import TopBar from './TopBar';
+import SetPasswordPrompt from './SetPasswordPrompt';
 
 export default function AppShell({ children }) {
   const { user, loading } = useAuth();
@@ -25,6 +26,7 @@ export default function AppShell({ children }) {
         <main className="px-4 sm:px-6 md:px-10 py-7 pb-24 md:pb-10 max-w-5xl w-full mx-auto">{children}</main>
       </div>
       <MobileNav />
+      <SetPasswordPrompt />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { Card, Tag, EmptyState, Btn, IconBtn, Field, inputClass } from '@/compon
 import { Amount } from '@/lib/PrivacyContext';
 import Modal, { ModalActions } from '@/components/Modal';
 import { IconPlus, IconTrash, IconEdit, IconDownload } from '@/components/Icons';
-import { fmtINR, todayStr, monthKey, monthLabel, shiftMonthKey } from '@/lib/utils';
+import { fmtINR, todayStr, monthKey, monthLabel, shiftMonthKey, confirmDelete } from '@/lib/utils';
 import { HOLDING_TYPES, API_BASE } from '@/lib/constants';
 
 export default function TransactionsSection() {
@@ -153,7 +153,7 @@ export default function TransactionsSection() {
                       <IconBtn danger={false} onClick={() => openEdit(t)} title="Edit">
                         <IconEdit />
                       </IconBtn>
-                      <IconBtn onClick={() => deleteTransaction(t.id)} title="Delete">
+                      <IconBtn onClick={() => confirmDelete('Delete this transaction? This does not automatically adjust the holding quantity.') && deleteTransaction(t.id)} title="Delete">
                         <IconTrash />
                       </IconBtn>
                     </div>

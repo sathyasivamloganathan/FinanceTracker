@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
 import { Field, inputClass, Btn } from '@/components/ui';
+import GoogleButton from '@/components/GoogleButton';
+import Logo from '@/components/Logo';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -32,9 +34,10 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-paper px-4">
-      <div className="w-full max-w-sm bg-paperCard border border-line rounded-card p-7">
-        <div className="font-display font-semibold text-[24px] text-ink mb-1">Finance Tracker</div>
+      <div className="w-full max-w-sm bg-paperCard border border-line rounded-card shadow-card p-7">
+        <div className="flex items-center gap-2.5 mb-1"><Logo size={30} /><span className="font-display font-bold text-[22px] text-ink">Vantage</span></div>
         <p className="text-inkMuted text-[13px] mb-6">Create your private finance desk. Your data isn&apos;t shared with anyone.</p>
+        <GoogleButton label="Sign up with Google" />
         <form onSubmit={submit} className="space-y-4">
           <Field label="Name">
             <input required className={inputClass} value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
@@ -51,7 +54,7 @@ export default function RegisterPage() {
           </Btn>
         </form>
         <p className="text-inkMuted text-[13px] mt-5 text-center">
-          Already registered? <Link href="/login" className="text-brass font-semibold">Log in</Link>
+          Already registered? <Link href="/login" className="text-accent font-semibold">Log in</Link>
         </p>
       </div>
     </div>

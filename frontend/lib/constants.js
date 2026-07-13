@@ -19,6 +19,7 @@ export const WEALTH_TABS = [
 export const MONEY_TABS = [{ id: 'expenses', label: 'Daily Spends' }];
 
 export const MORE_TABS = [
+  { id: 'insights', label: 'Insights' },
   { id: 'insurance', label: 'Insurance' },
   { id: 'health', label: 'Health Check' },
   { id: 'goals', label: 'Goals' },
@@ -54,5 +55,4 @@ export const INSURANCE_TYPES = ['Life', 'Health', 'Vehicle', 'Home', 'Other'];
 export const PREMIUM_FREQUENCIES = ['Yearly', 'Half-yearly', 'Quarterly', 'Monthly', 'One-time'];
 export const LIABILITY_TYPES = ['Home Loan', 'Personal Loan', 'Car Loan', 'Credit Card', 'Education Loan', 'Other'];
 
-export const STORAGE_KEY = 'Finance Tracker-finance-data-v1';
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';

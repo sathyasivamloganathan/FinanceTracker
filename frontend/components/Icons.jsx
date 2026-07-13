@@ -130,6 +130,17 @@ export function IconDownload(props) {
   );
 }
 
+export function IconChart(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.8} {...props}>
+      <path d="M4 19V9" />
+      <path d="M11 19V5" />
+      <path d="M18 19v-7" />
+      <path d="M3 19h18" />
+    </svg>
+  );
+}
+
 export function iconFor(name) {
   const map = {
     grid: IconGrid,
@@ -140,6 +151,7 @@ export function iconFor(name) {
     wallet: IconWallet,
     shield: IconShield,
     dots: IconDots,
+    chart: IconChart,
   };
   return map[name] || IconGrid;
 }

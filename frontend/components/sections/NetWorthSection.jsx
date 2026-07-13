@@ -19,6 +19,7 @@ import {
   fmtINR,
   fmtPct,
   todayStr,
+  confirmDelete,
 } from '@/lib/utils';
 import { DEFAULT_ASSET_CATEGORIES } from '@/lib/constants';
 
@@ -75,7 +76,7 @@ export default function NetWorthSection() {
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           label="Total Net Worth"
           value={<Amount>{fmtINR(nw)}</Amount>}
@@ -133,7 +134,7 @@ export default function NetWorthSection() {
                   <XAxis dataKey="name" fontSize={10} />
                   <YAxis tickFormatter={(v) => '₹' + v} fontSize={10} width={55} />
                   <Tooltip formatter={(v) => fmtINR(v)} />
-                  <Line type="monotone" dataKey="value" stroke="#276B47" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="value" stroke="#2563EB" strokeWidth={2} dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -159,7 +160,7 @@ export default function NetWorthSection() {
                       <Amount>{fmtINR(s.invested)}</Amount>
                     </td>
                     <td>
-                      <IconBtn onClick={() => deleteSnapshot(s.id)}>
+                      <IconBtn onClick={() => confirmDelete('Delete this snapshot?') && deleteSnapshot(s.id)}>
                         <IconTrash />
                       </IconBtn>
                     </td>
@@ -268,10 +269,10 @@ export default function NetWorthSection() {
                     <Tag>{a.category}</Tag>
                   </td>
                   <td className="num">
-                    <EditableNumber value={a.amount} onCommit={(val) => updateOtherAsset(a.id, val)} className={`${inputClass} w-[100px] sm:w-[120px] text-right`} />
+                    <EditableNumber value={a.amount} onCommit={(val) => updateOtherAsset(a.id, val)} className={`${inputClass} w-[130px] text-right`} />
                   </td>
                   <td>
-                    <IconBtn onClick={() => deleteOtherAsset(a.id)}>
+                    <IconBtn onClick={() => confirmDelete(`Delete "${a.name}" and its whole history?`) && deleteOtherAsset(a.id)}>
                       <IconTrash />
                     </IconBtn>
                   </td>
@@ -319,7 +320,7 @@ export default function NetWorthSection() {
                     <XAxis dataKey="name" fontSize={10} />
                     <YAxis tickFormatter={(v) => '₹' + v} fontSize={10} width={50} />
                     <Tooltip formatter={(v) => fmtINR(v)} />
-                    <Line type="monotone" dataKey="value" stroke="#276B47" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="value" stroke="#059669" strokeWidth={2} dot={{ r: 3 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -351,11 +352,11 @@ export default function NetWorthSection() {
                         <EditableNumber
                           value={h.amount}
                           onCommit={(val) => updateAssetSnapshot(historyAsset.id, h.id, h.date, val)}
-                          className={`${inputClass} w-[110px] text-right`}
+                          className={`${inputClass} w-[130px] text-right`}
                         />
                       </td>
                       <td>
-                        <IconBtn onClick={() => deleteAssetSnapshot(historyAsset.id, h.id)}>
+                        <IconBtn onClick={() => confirmDelete(`Delete the ${h.date} entry?`) && deleteAssetSnapshot(historyAsset.id, h.id)}>
                           <IconTrash />
                         </IconBtn>
                       </td>

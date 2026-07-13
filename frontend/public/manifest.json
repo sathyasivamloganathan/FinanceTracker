@@ -1,12 +1,12 @@
 {
-  "name": "Finance Tracker — Personal Finance Desk",
-  "short_name": "Finance Tracker",
+  "name": "Vantage — Personal Finance Desk",
+  "short_name": "Vantage",
   "description": "Track net worth, holdings, allocation, daily spends, and insurance — privately.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#EDEEF0",
-  "theme_color": "#1C2430",
+  "background_color": "#F7F8FA",
+  "theme_color": "#0B1220",
   "orientation": "portrait-primary",
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },

@@ -6,7 +6,7 @@ import { useFinance } from '@/lib/FinanceContext';
 import { Card, SectionTitle, StatCard, Tag, EmptyState, Btn, IconBtn, Field, inputClass } from '@/components/ui';
 import Modal, { ModalActions } from '@/components/Modal';
 import { IconPlus, IconTrash, IconEdit, IconDownload } from '@/components/Icons';
-import { fmtINR, todayStr, monthKey, monthLabel, shiftMonthKey } from '@/lib/utils';
+import { fmtINR, todayStr, monthKey, monthLabel, shiftMonthKey, confirmDelete } from '@/lib/utils';
 import { EXPENSE_CATEGORIES, API_BASE } from '@/lib/constants';
 
 export default function ExpensesSection() {
@@ -159,7 +159,7 @@ export default function ExpensesSection() {
                   <XAxis dataKey="name" fontSize={10.5} label={{ value: 'Day of month', position: 'insideBottom', offset: -5, fontSize: 11 }} />
                   <YAxis tickFormatter={(v) => '₹' + v} fontSize={11} />
                   <Tooltip formatter={(v) => fmtINR(v)} />
-                  <Bar dataKey="value" fill="#0F766E" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="value" fill="#2563EB" radius={[3, 3, 0, 0]} />
                 </BarChart>
               ) : (
                 <LineChart data={chartData}>
@@ -167,7 +167,7 @@ export default function ExpensesSection() {
                   <XAxis dataKey="name" fontSize={10.5} />
                   <YAxis tickFormatter={(v) => '₹' + v} fontSize={11} />
                   <Tooltip formatter={(v) => fmtINR(v)} />
-                  <Line type="monotone" dataKey="value" stroke="#276B47" strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="value" stroke="#059669" strokeWidth={2} dot={{ r: 4 }} />
                 </LineChart>
               )}
             </ResponsiveContainer>
@@ -204,7 +204,7 @@ export default function ExpensesSection() {
                       <IconBtn danger={false} onClick={() => openEdit(e)} title="Edit">
                         <IconEdit />
                       </IconBtn>
-                      <IconBtn onClick={() => deleteExpense(e.id)} title="Delete">
+                      <IconBtn onClick={() => confirmDelete('Delete this spend?') && deleteExpense(e.id)} title="Delete">
                         <IconTrash />
                       </IconBtn>
                     </div>

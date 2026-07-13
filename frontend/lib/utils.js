@@ -85,8 +85,14 @@ export function avgMonthlyExpense(state, months = 3) {
   const now = new Date();
   const keys = [];
   for (let i = 0; i < months; i++) keys.push(shiftMonthKey(monthKey(now), -i));
-  const total = keys.reduce((s, mk) => s + monthTotal(state.expenses, mk), 0);
-  return total / months;
+  const totals = keys.map((mk) => monthTotal(state.expenses, mk));
+  // Average only over months that actually have something logged — dividing
+  // by a fixed month count regardless of how many are still empty (e.g. a
+  // new account with only one month of data) silently understates average
+  // spend and overstates savings rate.
+  const monthsWithData = totals.filter((t) => t > 0);
+  if (!monthsWithData.length) return 0;
+  return monthsWithData.reduce((a, b) => a + b, 0) / monthsWithData.length;
 }
 
 export function emergencyFundMonths(state) {
@@ -118,6 +124,23 @@ export function yearsToFI(savingsRatePct) {
   return sorted[sorted.length - 1].years;
 }
 
+export function ageFromDOB(dob) {
+  if (!dob) return null;
+  const birth = new Date(dob);
+  if (Number.isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) age--;
+  return age;
+}
+
+export function yearsToRetirement(dob, retirementAge = 60) {
+  const age = ageFromDOB(dob);
+  if (age === null) return null;
+  return Math.max(0, retirementAge - age);
+}
+
 export function recommendedTermCover(annualExpense, netWorthVal) {
   return Math.max(0, annualExpense * 25 - netWorthVal);
 }
@@ -138,13 +161,13 @@ export function totalInvestedEquityValue(state) {
 
 export function categoryColor(cat) {
   const map = {
-    Stocks: '#276B47',
-    'Mutual Funds': '#3B4C8C',
-    Gold: '#9A3412',
-    Cash: '#5C8AA6',
-    'Fixed Deposit': '#7A6BAE',
-    'Real Estate': '#AE4A2C',
-    Other: '#8A8F99',
+    Stocks: "#059669",
+    "Mutual Funds": "#2563EB",
+    Gold: "#9A3412",
+    Cash: "#a544e1",
+    "Fixed Deposit": "#7C3AED",
+    "Real Estate": "#DC2626",
+    Other: "#6B7280",
   };
   if (map[cat]) return map[cat];
   let hash = 0;
@@ -159,6 +182,10 @@ export function dueStatus(dateStr) {
   if (days < 0) return { cls: 'late', label: 'Overdue' };
   if (days <= 30) return { cls: 'soon', label: `Due in ${days}d` };
   return { cls: 'ok', label: 'Active' };
+}
+
+export function confirmDelete(message = 'Delete this? This cannot be undone.') {
+  return typeof window !== 'undefined' && window.confirm(message);
 }
 
 export function monthTotal(expenses, mk) {

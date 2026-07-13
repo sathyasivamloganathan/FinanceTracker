@@ -41,7 +41,7 @@ async function sendMonthlySummaries() {
     const html = `
       <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
         <h2 style="font-family: Georgia, serif;">Your ${monthLabel} summary</h2>
-        <p>Here's your monthly recap from Finance Tracker — just the two numbers you asked to be kept in the loop on.</p>
+        <p>Here's your monthly recap from Vantage — just the two numbers you asked to be kept in the loop on.</p>
         <table style="width:100%; border-collapse: collapse; margin-top: 16px;">
           <tr>
             <td style="padding: 12px; background:#F8F8F6; border:1px solid #e2e2e2;">Total spent this month</td>
@@ -52,7 +52,7 @@ async function sendMonthlySummaries() {
             <td style="padding: 12px; border:1px solid #e2e2e2; text-align:right; font-weight:bold; color:${pl >= 0 ? '#276B47' : '#AE4A2C'};">${fmtINR(pl)} (${fmtPct(plPct)})</td>
           </tr>
         </table>
-        <p style="color:#888; font-size:12px; margin-top:24px;">Log in to Finance Tracker for the full breakdown. You're receiving this because month-end summaries are enabled on your account.</p>
+        <p style="color:#888; font-size:12px; margin-top:24px;">Log in to Vantage for the full breakdown. You're receiving this because month-end summaries are enabled on your account.</p>
       </div>
     `;
 
@@ -102,7 +102,7 @@ async function sendDeadlineReminders() {
         <h2 style="font-family: Georgia, serif;">Upcoming renewals</h2>
         <p>These are coming up within the next 2 months:</p>
         <table style="width:100%; border-collapse: collapse; margin-top: 12px;">${rows}</table>
-        <p style="color:#888; font-size:12px; margin-top:24px;">Log in to Finance Tracker to update or renew these.</p>
+        <p style="color:#888; font-size:12px; margin-top:24px;">Log in to Vantage to update or renew these.</p>
       </div>
     `;
 

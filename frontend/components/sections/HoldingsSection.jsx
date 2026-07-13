@@ -7,7 +7,7 @@ import { Amount } from '@/lib/PrivacyContext';
 import Modal, { ModalActions } from '@/components/Modal';
 import EditableNumber from '@/components/EditableNumber';
 import { IconPlus, IconTrash, IconRefresh, IconDownload } from '@/components/Icons';
-import { holdingInvestedValue, holdingCurrentValue, fmtINR, fmtNum, fmtPct, todayStr } from '@/lib/utils';
+import { holdingInvestedValue, holdingCurrentValue, fmtINR, fmtNum, fmtPct, todayStr, confirmDelete } from '@/lib/utils';
 import { HOLDING_TYPES, API_BASE } from '@/lib/constants';
 
 const SYNC_BADGE = {
@@ -130,7 +130,7 @@ export default function HoldingsSection() {
                       <EditableNumber
                         value={h.currentRate}
                         onCommit={(val) => updateHoldingRate(h.id, val)}
-                        className={`${inputClass} w-[90px] sm:w-[100px] text-right`}
+                        className={`${inputClass} w-[130px] text-right`}
                       />
                     </td>
                     <td>
@@ -157,7 +157,7 @@ export default function HoldingsSection() {
                       <div className="text-inkMuted text-xs">{fmtPct(plPct)}</div>
                     </td>
                     <td>
-                      <IconBtn onClick={() => deleteHolding(h.id)} title="Delete holding">
+                      <IconBtn onClick={() => confirmDelete(`Delete "${h.name}"? Its transaction history stays on record.`) && deleteHolding(h.id)} title="Delete holding">
                         <IconTrash />
                       </IconBtn>
                     </td>

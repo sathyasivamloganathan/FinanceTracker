@@ -157,6 +157,14 @@ export function FinanceProvider({ children }) {
     const { goals } = await api.delete(`/api/goals/${id}`);
     setState((s) => ({ ...s, goals }));
   }, []);
+  const achieveGoal = useCallback(async (id) => {
+    const { goals } = await api.post(`/api/goals/${id}/achieve`, {});
+    setState((s) => ({ ...s, goals }));
+  }, []);
+  const reopenGoal = useCallback(async (id) => {
+    const { goals } = await api.post(`/api/goals/${id}/reopen`, {});
+    setState((s) => ({ ...s, goals }));
+  }, []);
 
   // ---------- Net worth snapshots ----------
   const takeSnapshot = useCallback(async () => {
@@ -206,6 +214,8 @@ export function FinanceProvider({ children }) {
     addGoal,
     updateGoal,
     deleteGoal,
+    achieveGoal,
+    reopenGoal,
     takeSnapshot,
     deleteSnapshot,
     updateFinancialProfile,

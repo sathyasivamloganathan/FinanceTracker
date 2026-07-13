@@ -109,6 +109,9 @@ const GoalSchema = new Schema(
     targetDate: { type: String, default: '' },
     notes: { type: String, trim: true, maxlength: 300, default: '' },
     createdAt: { type: String, default: () => new Date().toISOString().slice(0, 10) },
+    achieved: { type: Boolean, default: false },
+    achievedDate: { type: String, default: '' },
+    achievedNetWorth: { type: Number, default: null },
   },
   { _id: true }
 );
@@ -127,7 +130,9 @@ const UserSchema = new Schema(
   {
     name: { type: String, required: true, trim: true, maxlength: 100 },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    passwordHash: { type: String, required: true },
+    passwordHash: { type: String, default: null }, // null for Google-only accounts until they set one
+    authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
+    googleId: { type: String, default: null, unique: true, sparse: true },
 
     privacyModeDefault: { type: Boolean, default: true },
 
@@ -143,7 +148,7 @@ const UserSchema = new Schema(
 
     // Financial profile for the Health Check section — all optional.
     financialProfile: {
-      age: { type: Number, default: null },
+      dateOfBirth: { type: String, default: null }, // "YYYY-MM-DD"
       monthlyIncome: { type: Number, default: null },
     },
 
@@ -161,6 +166,8 @@ UserSchema.methods.toSafeJSON = function () {
     id: String(this._id),
     name: this.name,
     email: this.email,
+    authProvider: this.authProvider,
+    hasPassword: !!this.passwordHash,
     privacyModeDefault: this.privacyModeDefault,
     otherAssets: serializeList(this.otherAssets),
     holdings: serializeList(this.holdings),

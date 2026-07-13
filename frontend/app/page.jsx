@@ -47,7 +47,7 @@ export default function OverviewPage() {
 
       <SectionTitle
         action={
-          <Link href="/money" className="text-brass text-[13px] font-semibold">
+          <Link href="/money" className="text-accent text-[13px] font-semibold">
             Open Money →
           </Link>
         }
@@ -76,7 +76,7 @@ export default function OverviewPage() {
         <>
           <SectionTitle
             action={
-              <Link href="/more" className="text-brass text-[13px] font-semibold">
+              <Link href="/more" className="text-accent text-[13px] font-semibold">
                 Open More →
               </Link>
             }
@@ -101,9 +101,9 @@ export default function OverviewPage() {
 
       <SectionTitle>Quick links</SectionTitle>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <Link href="/wealth"><Card className="hover:border-brass transition-colors"><div className="font-display font-semibold">Wealth</div><div className="text-inkMuted text-xs mt-1">Net worth, holdings, transactions, liabilities, allocation, advisor</div></Card></Link>
-        <Link href="/money"><Card className="hover:border-brass transition-colors"><div className="font-display font-semibold">Money</div><div className="text-inkMuted text-xs mt-1">Daily spends, kept separate from investments</div></Card></Link>
-        <Link href="/more"><Card className="hover:border-brass transition-colors"><div className="font-display font-semibold">More</div><div className="text-inkMuted text-xs mt-1">Insurance, health check, goals, settings</div></Card></Link>
+        <Link href="/wealth"><Card className="hover:border-accent transition-colors"><div className="font-display font-semibold">Wealth</div><div className="text-inkMuted text-xs mt-1">Net worth, holdings, transactions, liabilities, allocation, advisor</div></Card></Link>
+        <Link href="/money"><Card className="hover:border-accent transition-colors"><div className="font-display font-semibold">Money</div><div className="text-inkMuted text-xs mt-1">Daily spends, kept separate from investments</div></Card></Link>
+        <Link href="/more"><Card className="hover:border-accent transition-colors"><div className="font-display font-semibold">More</div><div className="text-inkMuted text-xs mt-1">Insights, insurance, health check, goals, settings</div></Card></Link>
       </div>
     </>
   );
