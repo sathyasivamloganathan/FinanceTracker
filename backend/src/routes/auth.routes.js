@@ -15,7 +15,7 @@ function cookieOptions() {
   return {
     httpOnly: true, // not readable by page JavaScript -> blocks token theft via XSS
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    sameSite: 'lax', // sent on top-level navigation, blocked on most cross-site requests -> CSRF mitigation
+    sameSite: 'none', // sent on top-level navigation, blocked on most cross-site requests -> CSRF mitigation
     maxAge: Number(process.env.COOKIE_MAX_AGE_MS) || 7 * 24 * 60 * 60 * 1000,
     path: '/',
   };

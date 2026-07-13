@@ -1,8 +1,8 @@
-const helmet = require('helmet');
-const cors = require('cors');
-const mongoSanitize = require('express-mongo-sanitize');
-const hpp = require('hpp');
-const rateLimit = require('express-rate-limit');
+const helmet = require("helmet");
+const cors = require("cors");
+const mongoSanitize = require("express-mongo-sanitize");
+const hpp = require("hpp");
+const rateLimit = require("express-rate-limit");
 
 // Security posture summary (see README for the full list):
 // - helmet: sets safe HTTP response headers (CSP, no-sniff, frameguard, HSTS in prod, etc.)
@@ -24,49 +24,67 @@ const rateLimit = require('express-rate-limit');
 // standard baseline, not a guarantee.
 
 function applySecurity(app) {
-  app.set('trust proxy', true);
+  app.set("trust proxy", true);
 
   app.use(
     helmet({
       contentSecurityPolicy: false, // enable + configure this once you know your exact frontend origin/CDN needs
-      crossOriginResourcePolicy: { policy: 'same-site' },
-    })
+      crossOriginResourcePolicy: { policy: "same-site" },
+    }),
   );
 
-  const allowedOrigins = (process.env.CLIENT_ORIGINS || 'http://localhost:3000')
-    .split(',')
+  const allowedOrigins = (process.env.CLIENT_ORIGINS || "http://localhost:3000")
+    .split(",")
     .map((s) => s.trim());
 
   app.use(
     cors({
       origin(origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-        return callback(new Error('Not allowed by CORS'));
+        console.log("CLIENT_ORIGINS ENV:", process.env.CLIENT_ORIGINS);
+        console.log("REQUEST ORIGIN:", origin);
+
+        if (!origin || allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+
+        return callback(new Error("Not allowed by CORS"));
       },
       credentials: true,
-    })
+    }),
   );
 
   app.use(mongoSanitize());
   app.use(hpp());
 }
 
+function ipKeyGenerator(ip) {
+  return ip?.replace(/:\d+$/, "") || "unknown";
+}
 // General limiter for all API traffic
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many requests, please slow down.' },
+
+  keyGenerator: (req) => {
+    return ipKeyGenerator(req.ip);
+  },
+
+  message: { error: "Too many requests, please slow down." },
 });
 
-// Tighter limiter specifically for login/register to blunt brute-force / credential stuffing
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many attempts, please try again later.' },
+
+  keyGenerator: (req) => {
+    return ipKeyGenerator(req.ip);
+  },
+
+  message: { error: "Too many attempts, please try again later." },
 });
 
 module.exports = { applySecurity, generalLimiter, authLimiter };
