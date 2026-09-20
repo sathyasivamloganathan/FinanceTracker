@@ -52,28 +52,55 @@ export default function ExpensesSection() {
   const [form, setForm] = useState({ date: todayStr(), category: EXPENSE_CATEGORIES[0], description: '', amount: '', accountId: '', expenseType: 'expense', notes: '' });
   const { toast, show: showToast, dismiss: dismissToast } = useUndo();
 
+  // Hooks MUST run on every render.
+  const allMonthEntries = useMemo(() => {
+    if (!state?.expenses) return [];
+
+    return state.expenses.filter((e) => e.date.slice(0, 7) === selectedMonth);
+  }, [state?.expenses, selectedMonth]);
+
+  const filteredRows = useMemo(() => {
+    return allMonthEntries
+      .filter(
+        (e) =>
+          filterType === "all" ||
+          e.expenseType === filterType ||
+          (!e.expenseType && filterType === "expense"),
+      )
+      .filter((e) => filterAccount === "all" || e.accountId === filterAccount)
+      .filter((e) => filterCategory === "all" || e.category === filterCategory)
+      .filter(
+        (e) =>
+          !search ||
+          e.description?.toLowerCase().includes(search.toLowerCase()) ||
+          e.category.toLowerCase().includes(search.toLowerCase()) ||
+          (e.notes || "").toLowerCase().includes(search.toLowerCase()),
+      )
+      .sort((a, b) =>
+        sortBy === "amount"
+          ? b.amount - a.amount
+          : b.date.localeCompare(a.date),
+      );
+  }, [
+    allMonthEntries,
+    filterType,
+    filterAccount,
+    filterCategory,
+    search,
+    sortBy,
+  ]);
+
+  // Conditional rendering AFTER all hooks.
   if (!ready || !state) return <SectionLoader />;
 
   const bankAccounts = state.bankAccounts || [];
 
-  // All entries for the month (no type filter for stats)
-  const allMonthEntries = useMemo(() => {
-    if (!state) return [];
-    return state.expenses.filter(e => e.date.slice(0, 7) === selectedMonth);
-  }, [state, selectedMonth]);
+  const onlyExpenses = allMonthEntries.filter(
+    (e) => e.expenseType === "expense" || !e.expenseType,
+  );
 
-  const onlyExpenses = allMonthEntries.filter(e => e.expenseType === 'expense' || !e.expenseType);
-  const onlyIncome   = allMonthEntries.filter(e => e.expenseType === 'income');
+  const onlyIncome = allMonthEntries.filter((e) => e.expenseType === "income");
 
-  // Filtered rows for table
-  const filteredRows = useMemo(() => {
-    return allMonthEntries
-      .filter(e => filterType === 'all' || e.expenseType === filterType || (!e.expenseType && filterType === 'expense'))
-      .filter(e => filterAccount === 'all' || e.accountId === filterAccount)
-      .filter(e => filterCategory === 'all' || e.category === filterCategory)
-      .filter(e => !search || e.description?.toLowerCase().includes(search.toLowerCase()) || e.category.toLowerCase().includes(search.toLowerCase()) || (e.notes || '').toLowerCase().includes(search.toLowerCase()))
-      .sort((a, b) => sortBy === 'amount' ? b.amount - a.amount : b.date.localeCompare(a.date));
-  }, [allMonthEntries, filterType, filterAccount, filterCategory, search, sortBy]);
 
   const totalSpend  = onlyExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const totalIncome = onlyIncome.reduce((s, e) => s + Number(e.amount || 0), 0);

@@ -39,25 +39,34 @@ function BudgetBar({ category, budgeted, spent, onEdit }) {
 
 export default function BudgetSection() {
   const { state, ready, saveBudget } = useFinance();
+
   const [selectedMonth, setSelectedMonth] = useState(monthKey(new Date()));
   const [editingCat, setEditingCat] = useState(null);
-  const [editValue, setEditValue] = useState('');
-  const [addingCat, setAddingCat] = useState('');
-  const [addingAmt, setAddingAmt] = useState('');
+  const [editValue, setEditValue] = useState("");
+  const [addingCat, setAddingCat] = useState("");
+  const [addingAmt, setAddingAmt] = useState("");
   const [copyOpen, setCopyOpen] = useState(false);
+
+  const monthSpend = useMemo(() => {
+    const bycat = {};
+
+    (state?.expenses || [])
+      .filter(
+        (e) =>
+          e.date.slice(0, 7) === selectedMonth &&
+          (e.expenseType === "expense" || !e.expenseType),
+      )
+      .forEach((e) => {
+        bycat[e.category] = (bycat[e.category] || 0) + Number(e.amount || 0);
+      });
+
+    return bycat;
+  }, [state?.expenses, selectedMonth]);
 
   if (!ready || !state) return <SectionLoader />;
 
   const budgets = state.budgets || {};
   const monthBudget = budgets[selectedMonth] || {};
-
-  const monthSpend = useMemo(() => {
-    const bycat = {};
-    (state.expenses || [])
-      .filter(e => e.date.slice(0, 7) === selectedMonth && (e.expenseType === 'expense' || !e.expenseType))
-      .forEach(e => { bycat[e.category] = (bycat[e.category] || 0) + Number(e.amount || 0); });
-    return bycat;
-  }, [state.expenses, selectedMonth]);
 
   const totalBudgeted = Object.values(monthBudget).reduce((s, v) => s + v, 0);
   const totalSpent = Object.keys(monthBudget).reduce((s, cat) => s + (monthSpend[cat] || 0), 0);
