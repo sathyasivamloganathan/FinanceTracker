@@ -89,16 +89,32 @@ export default function TransactionsSection() {
     <>
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
         <div className="flex items-center gap-2 flex-wrap">
-          <select className={`${inputClass} w-auto`} value={selectedMonth} onChange={e => applyFilter(setSelectedMonth, e.target.value)}>
+          <select
+            className={`${inputClass} w-auto`}
+            value={selectedMonth}
+            onChange={(e) => applyFilter(setSelectedMonth, e.target.value)}
+          >
             <option value="all">All months</option>
-            {availableMonths.map(mk => <option key={mk} value={mk}>{monthLabel(mk)}</option>)}
+            {availableMonths.map((mk) => (
+              <option key={mk} value={mk}>
+                {monthLabel(mk)}
+              </option>
+            ))}
           </select>
-          <select className={`${inputClass} w-auto`} value={filterType} onChange={e => applyFilter(setFilterType, e.target.value)}>
+          <select
+            className={`${inputClass} w-auto`}
+            value={filterType}
+            onChange={(e) => applyFilter(setFilterType, e.target.value)}
+          >
             <option value="all">Buy & Sell</option>
             <option value="Buy">Buy only</option>
             <option value="Sell">Sell only</option>
           </select>
-          <select className={`${inputClass} w-auto`} value={filterAsset} onChange={e => applyFilter(setFilterAsset, e.target.value)}>
+          <select
+            className={`${inputClass} w-auto`}
+            value={filterAsset}
+            onChange={(e) => applyFilter(setFilterAsset, e.target.value)}
+          >
             <option value="all">All types</option>
             <option value="Stock">Stocks</option>
             <option value="Mutual Fund">Mutual Funds</option>
@@ -106,8 +122,14 @@ export default function TransactionsSection() {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <a href={`${API_BASE}/api/export/transactions.csv`}><Btn variant="secondary"><IconDownload /> CSV</Btn></a>
-          <Btn onClick={openAdd}><IconPlus /> Log transaction</Btn>
+          <a href={`${API_BASE}/api/export/transactions.csv`}>
+            <Btn variant="secondary">
+              <IconDownload /> CSV
+            </Btn>
+          </a>
+          <Btn onClick={openAdd}>
+            <IconPlus /> Log transaction
+          </Btn>
         </div>
       </div>
 
@@ -115,13 +137,27 @@ export default function TransactionsSection() {
       {buyRows.length > 0 && (
         <>
           <SectionTitle>
-            {selectedMonth === 'all' ? 'All-time invested (buys only)' : `Invested in ${monthLabel(selectedMonth)}`}
+            {selectedMonth === "all"
+              ? "All-time invested (buys only)"
+              : `Invested in ${monthLabel(selectedMonth)}`}
           </SectionTitle>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-            <StatCard label="Total invested" value={<Amount>{fmtINR(totalBuy)}</Amount>} />
-            <StatCard label="Stocks" value={<Amount>{fmtINR(stockTotal)}</Amount>} />
-            <StatCard label="Mutual Funds" value={<Amount>{fmtINR(mfTotal)}</Amount>} />
-            <StatCard label="Gold" value={<Amount>{fmtINR(goldTotal)}</Amount>} />
+            <StatCard
+              label="Total invested"
+              value={<Amount>{fmtINR(totalBuy)}</Amount>}
+            />
+            <StatCard
+              label="Stocks"
+              value={<Amount>{fmtINR(stockTotal)}</Amount>}
+            />
+            <StatCard
+              label="Mutual Funds"
+              value={<Amount>{fmtINR(mfTotal)}</Amount>}
+            />
+            <StatCard
+              label="Gold"
+              value={<Amount>{fmtINR(goldTotal)}</Amount>}
+            />
           </div>
         </>
       )}
@@ -129,7 +165,7 @@ export default function TransactionsSection() {
       {/* Result count */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-inkMuted dark:text-gray-400 text-[12.5px]">
-          {allFiltered.length} transaction{allFiltered.length !== 1 ? 's' : ''}
+          {allFiltered.length} transaction{allFiltered.length !== 1 ? "s" : ""}
           {totalPages > 1 && ` — page ${page} of ${totalPages}`}
         </span>
       </div>
@@ -138,27 +174,71 @@ export default function TransactionsSection() {
         <Card padded={false} className="overflow-x-auto">
           <table>
             <thead>
-              <tr>
-                <th>Date</th><th>Type</th><th>Instrument</th><th>Category</th>
-                <th className="num">Qty</th><th className="num">Rate</th><th className="num">Amount</th>
-                <th>Notes</th><th></th>
+              <tr className="[&>th]:pt-4 [&>th]:pb-3">
+                <th>Date</th>
+                <th>Type</th>
+                <th>Instrument</th>
+                <th>Category</th>
+                <th className="num">Qty</th>
+                <th className="num">Rate</th>
+                <th className="num">Amount</th>
+                <th>Notes</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
-              {rows.map(t => (
+              {rows.map((t) => (
                 <tr key={t.id}>
-                  <td className="mono dark:text-gray-300 whitespace-nowrap">{t.date}</td>
-                  <td><Tag tone={t.type === 'Buy' ? 'buy' : 'sell'}>{t.type}</Tag></td>
-                  <td><b className="dark:text-gray-100">{t.name}</b></td>
-                  <td><Tag tone={t.assetType === 'Stock' ? 'stock' : t.assetType === 'Gold' ? 'gold' : 'mf'}>{t.assetType}</Tag></td>
+                  <td className="mono dark:text-gray-300 whitespace-nowrap">
+                    {t.date}
+                  </td>
+                  <td>
+                    <Tag tone={t.type === "Buy" ? "buy" : "sell"}>{t.type}</Tag>
+                  </td>
+                  <td>
+                    <b className="dark:text-gray-100">{t.name}</b>
+                  </td>
+                  <td>
+                    <Tag
+                      tone={
+                        t.assetType === "Stock"
+                          ? "stock"
+                          : t.assetType === "Gold"
+                            ? "gold"
+                            : "mf"
+                      }
+                    >
+                      {t.assetType}
+                    </Tag>
+                  </td>
                   <td className="num dark:text-gray-300">{t.qty}</td>
-                  <td className="num"><Amount>{fmtINR(t.price, 2)}</Amount></td>
-                  <td className="num"><Amount>{fmtINR(t.amount)}</Amount></td>
-                  <td className="max-w-[140px] text-inkMuted dark:text-gray-500 text-xs">{t.notes}</td>
+                  <td className="num">
+                    <Amount>{fmtINR(t.price, 2)}</Amount>
+                  </td>
+                  <td className="num">
+                    <Amount>{fmtINR(t.amount)}</Amount>
+                  </td>
+                  <td className="max-w-[140px] text-inkMuted dark:text-gray-500 text-xs">
+                    {t.notes}
+                  </td>
                   <td>
                     <div className="flex items-center">
-                      <IconBtn danger={false} onClick={() => openEdit(t)} title="Edit"><IconEdit /></IconBtn>
-                      <IconBtn onClick={() => confirmDelete('Delete this transaction?') && deleteTransaction(t.id)} title="Delete"><IconTrash /></IconBtn>
+                      <IconBtn
+                        danger={false}
+                        onClick={() => openEdit(t)}
+                        title="Edit"
+                      >
+                        <IconEdit />
+                      </IconBtn>
+                      <IconBtn
+                        onClick={() =>
+                          confirmDelete("Delete this transaction?") &&
+                          deleteTransaction(t.id)
+                        }
+                        title="Delete"
+                      >
+                        <IconTrash />
+                      </IconBtn>
                     </div>
                   </td>
                 </tr>
@@ -168,14 +248,22 @@ export default function TransactionsSection() {
         </Card>
       ) : (
         <EmptyState title="Nothing here yet">
-          {selectedMonth === 'all' ? 'Log your first buy to start building your holdings.' : `No transactions in ${monthLabel(selectedMonth)}.`}
+          {selectedMonth === "all"
+            ? "Log your first buy to start building your holdings."
+            : `No transactions in ${monthLabel(selectedMonth)}.`}
         </EmptyState>
       )}
 
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-4">
-          <Btn variant="secondary" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>‹ Prev</Btn>
+          <Btn
+            variant="secondary"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            ‹ Prev
+          </Btn>
           <div className="flex gap-1">
             {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
               let pg = i + 1;
@@ -185,58 +273,174 @@ export default function TransactionsSection() {
                 else pg = page - 3 + i;
               }
               return (
-                <button key={pg} onClick={() => setPage(pg)}
-                  className={`w-8 h-8 rounded-md text-[12px] font-medium border transition-colors ${pg === page ? 'bg-ink text-white border-ink dark:bg-gray-700 dark:border-gray-600' : 'border-line dark:border-gray-600 text-inkMuted dark:text-gray-400 hover:border-ink dark:hover:border-gray-400'}`}>
+                <button
+                  key={pg}
+                  onClick={() => setPage(pg)}
+                  className={`w-8 h-8 rounded-md text-[12px] font-medium border transition-colors ${pg === page ? "bg-ink text-white border-ink dark:bg-gray-700 dark:border-gray-600" : "border-line dark:border-gray-600 text-inkMuted dark:text-gray-400 hover:border-ink dark:hover:border-gray-400"}`}
+                >
                   {pg}
                 </button>
               );
             })}
           </div>
-          <Btn variant="secondary" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next ›</Btn>
+          <Btn
+            variant="secondary"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+          >
+            Next ›
+          </Btn>
         </div>
       )}
 
       {/* Modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? `Edit — ${form.name}` : 'Log a transaction'}>
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingId ? `Edit — ${form.name}` : "Log a transaction"}
+      >
         {editingId && (
-          <p className="text-[12px] text-inkMuted mb-3">Instrument, type, and asset class can't be changed — delete and re-add if needed.</p>
+          <p className="text-[12px] text-inkMuted mb-3">
+            Instrument, type, and asset class can't be changed — delete and
+            re-add if needed.
+          </p>
         )}
         {!editingId && (
           <>
             <div className="grid grid-cols-3 gap-3 mb-3">
-              <Field label="Date"><input type="date" className={inputClass} value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></Field>
-              <Field label="Type"><select className={inputClass} value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}><option>Buy</option><option>Sell</option></select></Field>
-              <Field label="Asset type"><select className={inputClass} value={form.assetType} onChange={e => setForm({ ...form, assetType: e.target.value })}>{HOLDING_TYPES.map(t => <option key={t}>{t}</option>)}</select></Field>
+              <Field label="Date">
+                <input
+                  type="date"
+                  className={inputClass}
+                  value={form.date}
+                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                />
+              </Field>
+              <Field label="Type">
+                <select
+                  className={inputClass}
+                  value={form.type}
+                  onChange={(e) => setForm({ ...form, type: e.target.value })}
+                >
+                  <option>Buy</option>
+                  <option>Sell</option>
+                </select>
+              </Field>
+              <Field label="Asset type">
+                <select
+                  className={inputClass}
+                  value={form.assetType}
+                  onChange={(e) =>
+                    setForm({ ...form, assetType: e.target.value })
+                  }
+                >
+                  {HOLDING_TYPES.map((t) => (
+                    <option key={t}>{t}</option>
+                  ))}
+                </select>
+              </Field>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <Field label="Instrument name">
-                <input list="tx-names" className={inputClass} placeholder="e.g. Nippon India Small Cap" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-                <datalist id="tx-names">{knownNames.map(n => <option key={n} value={n} />)}</datalist>
+                <input
+                  list="tx-names"
+                  className={inputClass}
+                  placeholder="e.g. Nippon India Small Cap"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
+                <datalist id="tx-names">
+                  {knownNames.map((n) => (
+                    <option key={n} value={n} />
+                  ))}
+                </datalist>
               </Field>
               <Field label="Symbol (optional)" hint="e.g. NSE:GOLDBEES">
-                <input className={inputClass} placeholder="e.g. NSE:GOLDBEES" value={form.symbol} onChange={e => setForm({ ...form, symbol: e.target.value })} />
+                <input
+                  className={inputClass}
+                  placeholder="e.g. NSE:GOLDBEES"
+                  value={form.symbol}
+                  onChange={(e) => setForm({ ...form, symbol: e.target.value })}
+                />
               </Field>
             </div>
           </>
         )}
         {editingId && (
           <div className="flex gap-2 mb-3">
-            <Tag tone={form.type === 'Buy' ? 'buy' : 'sell'}>{form.type}</Tag>
-            <Tag tone={form.assetType === 'Stock' ? 'stock' : form.assetType === 'Gold' ? 'gold' : 'mf'}>{form.assetType}</Tag>
-            <Field label="Date"><input type="date" className={inputClass} value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></Field>
+            <Tag tone={form.type === "Buy" ? "buy" : "sell"}>{form.type}</Tag>
+            <Tag
+              tone={
+                form.assetType === "Stock"
+                  ? "stock"
+                  : form.assetType === "Gold"
+                    ? "gold"
+                    : "mf"
+              }
+            >
+              {form.assetType}
+            </Tag>
+            <Field label="Date">
+              <input
+                type="date"
+                className={inputClass}
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+              />
+            </Field>
           </div>
         )}
         <div className="grid grid-cols-3 gap-3 mt-2">
-          <Field label="Qty / units"><input type="number" step="0.0001" className={inputClass} placeholder="0" value={form.qty} onChange={e => onQtyOrPriceChange({ ...form, qty: e.target.value })} /></Field>
-          <Field label="Price / NAV"><input type="number" step="0.01" className={inputClass} placeholder="0" value={form.price} onChange={e => onQtyOrPriceChange({ ...form, price: e.target.value })} /></Field>
-          <Field label="Amount"><input type="number" step="0.01" className={inputClass} placeholder="0" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></Field>
+          <Field label="Qty / units">
+            <input
+              type="number"
+              step="0.0001"
+              className={inputClass}
+              placeholder="0"
+              value={form.qty}
+              onChange={(e) =>
+                onQtyOrPriceChange({ ...form, qty: e.target.value })
+              }
+            />
+          </Field>
+          <Field label="Price / NAV">
+            <input
+              type="number"
+              step="0.01"
+              className={inputClass}
+              placeholder="0"
+              value={form.price}
+              onChange={(e) =>
+                onQtyOrPriceChange({ ...form, price: e.target.value })
+              }
+            />
+          </Field>
+          <Field label="Amount">
+            <input
+              type="number"
+              step="0.01"
+              className={inputClass}
+              placeholder="0"
+              value={form.amount}
+              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            />
+          </Field>
         </div>
         <Field label="Notes (optional)">
-          <input className={inputClass} placeholder="Brokerage, SIP number, reason…" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+          <input
+            className={inputClass}
+            placeholder="Brokerage, SIP number, reason…"
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          />
         </Field>
         <ModalActions>
-          <Btn variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Btn>
-          <Btn onClick={submit}>{editingId ? 'Save changes' : 'Save transaction'}</Btn>
+          <Btn variant="secondary" onClick={() => setModalOpen(false)}>
+            Cancel
+          </Btn>
+          <Btn onClick={submit}>
+            {editingId ? "Save changes" : "Save transaction"}
+          </Btn>
         </ModalActions>
       </Modal>
     </>

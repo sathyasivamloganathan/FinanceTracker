@@ -58,19 +58,38 @@ export default function NetWorthSection() {
         <StatCard
           label="Net Worth"
           value={<Amount>{fmtINR(nw)}</Amount>}
-          delta={<Amount>{`${pl >= 0 ? '▲' : '▼'} ${fmtINR(Math.abs(pl))} (${fmtPct(plPct)})`}</Amount>}
-          deltaClass={pl >= 0 ? 'text-emerald' : 'text-clay'}
+          delta={
+            <Amount>{`${pl >= 0 ? "▲" : "▼"} ${fmtINR(Math.abs(pl))} (${fmtPct(plPct)})`}</Amount>
+          }
+          deltaClass={pl >= 0 ? "text-emerald" : "text-clay"}
         />
-        <StatCard label="Total Invested" value={<Amount>{fmtINR(inv)}</Amount>} delta="across all instruments" deltaClass="text-inkMuted dark:text-gray-400" />
+        <StatCard
+          label="Total Invested"
+          value={<Amount>{fmtINR(inv)}</Amount>}
+          delta="across all instruments"
+          deltaClass="text-inkMuted dark:text-gray-400"
+        />
         <StatCard
           label="Market P/L"
-          value={<Amount><span className={eqPl >= 0 ? 'text-emerald' : 'text-clay'}>{fmtINR(eqPl)}</span></Amount>}
+          value={
+            <Amount>
+              <span className={eqPl >= 0 ? "text-emerald" : "text-clay"}>
+                {fmtINR(eqPl)}
+              </span>
+            </Amount>
+          }
           delta={fmtPct(eqPlPct)}
-          deltaClass={eqPl >= 0 ? 'text-emerald' : 'text-clay'}
+          deltaClass={eqPl >= 0 ? "text-emerald" : "text-clay"}
         />
         <StatCard
           label="Liabilities"
-          value={<Amount><span className={liabTotal ? 'text-clay' : ''}>{fmtINR(liabTotal)}</span></Amount>}
+          value={
+            <Amount>
+              <span className={liabTotal ? "text-clay" : ""}>
+                {fmtINR(liabTotal)}
+              </span>
+            </Amount>
+          }
           delta="loans & debts"
           deltaClass="text-inkMuted dark:text-gray-400"
         />
@@ -80,8 +99,18 @@ export default function NetWorthSection() {
       <SectionTitle
         action={
           <div className="flex gap-2">
-            <Btn variant="secondary" onClick={() => takeSnapshot()}><IconPlus /> Today's snapshot</Btn>
-            <Btn variant="secondary" onClick={() => { setPastForm({ date: '', netWorth: '', notes: '' }); setPastModalOpen(true); }}>+ Past entry</Btn>
+            <Btn variant="secondary" onClick={() => takeSnapshot()}>
+              <IconPlus /> Today's snapshot
+            </Btn>
+            <Btn
+              variant="secondary"
+              onClick={() => {
+                setPastForm({ date: "", netWorth: "", notes: "" });
+                setPastModalOpen(true);
+              }}
+            >
+              + Past entry
+            </Btn>
           </div>
         }
       >
@@ -93,36 +122,85 @@ export default function NetWorthSection() {
           <div className="grid grid-cols-2 gap-3 mb-4">
             <StatCard
               label="Growth since first snapshot"
-              value={growth === null ? '—' : <Amount>{fmtINR(growth)}</Amount>}
-              delta={growthPct === null ? 'Take more snapshots to compare' : fmtPct(growthPct)}
-              deltaClass={growth >= 0 ? 'text-emerald' : 'text-clay'}
+              value={growth === null ? "—" : <Amount>{fmtINR(growth)}</Amount>}
+              delta={
+                growthPct === null
+                  ? "Take more snapshots to compare"
+                  : fmtPct(growthPct)
+              }
+              deltaClass={growth >= 0 ? "text-emerald" : "text-clay"}
             />
-            <StatCard label="Snapshots" value={String(snapshots.length)} delta={`since ${first?.date || '—'}`} deltaClass="text-inkMuted dark:text-gray-400" />
+            <StatCard
+              label="Snapshots"
+              value={String(snapshots.length)}
+              delta={`since ${first?.date || "—"}`}
+              deltaClass="text-inkMuted dark:text-gray-400"
+            />
           </div>
           <Card className="mb-4">
             <div className="h-[180px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#E5E7EB"
+                  />
                   <XAxis dataKey="name" fontSize={10} />
-                  <YAxis tickFormatter={v => '₹' + (v >= 100000 ? Math.round(v/100000)+'L' : v >= 1000 ? Math.round(v/1000)+'k' : v)} fontSize={10} width={52} />
-                  <Tooltip formatter={v => fmtINR(v)} contentStyle={{ fontSize: 12 }} />
-                  <Line type="monotone" dataKey="value" stroke="#2563EB" strokeWidth={2} dot={{ r: 3 }} />
+                  <YAxis
+                    tickFormatter={(v) =>
+                      "₹" +
+                      (v >= 100000
+                        ? Math.round(v / 100000) + "L"
+                        : v >= 1000
+                          ? Math.round(v / 1000) + "k"
+                          : v)
+                    }
+                    fontSize={10}
+                    width={52}
+                  />
+                  <Tooltip
+                    formatter={(v) => fmtINR(v)}
+                    contentStyle={{ fontSize: 12 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#2563EB"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </Card>
           <Card padded={false} className="overflow-x-auto mb-6">
             <table>
-              <thead><tr><th>Date</th><th className="num">Net Worth</th><th className="num">Invested</th><th></th></tr></thead>
+              <thead>
+                <tr className="[&>th]:pt-4 [&>th]:pb-3">
+                  <th>Date</th>
+                  <th className="num">Net Worth</th>
+                  <th className="num">Invested</th>
+                  <th></th>
+                </tr>
+              </thead>
               <tbody>
-                {[...snapshots].reverse().map(s => (
+                {[...snapshots].reverse().map((s) => (
                   <tr key={s.id}>
                     <td className="mono dark:text-gray-300">{s.date}</td>
-                    <td className="num"><Amount>{fmtINR(s.netWorth)}</Amount></td>
-                    <td className="num"><Amount>{fmtINR(s.invested)}</Amount></td>
+                    <td className="num">
+                      <Amount>{fmtINR(s.netWorth)}</Amount>
+                    </td>
+                    <td className="num">
+                      <Amount>{fmtINR(s.invested)}</Amount>
+                    </td>
                     <td>
-                      <IconBtn onClick={() => confirmDelete('Delete this snapshot?') && deleteSnapshot(s.id)}>
+                      <IconBtn
+                        onClick={() =>
+                          confirmDelete("Delete this snapshot?") &&
+                          deleteSnapshot(s.id)
+                        }
+                      >
                         <IconTrash />
                       </IconBtn>
                     </td>
@@ -146,35 +224,73 @@ export default function NetWorthSection() {
             {pieData.length ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" innerRadius="55%" outerRadius="82%" paddingAngle={2}>
-                    {pieData.map(d => <Cell key={d.name} fill={categoryColor(d.name)} />)}
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius="55%"
+                    outerRadius="82%"
+                    paddingAngle={2}
+                  >
+                    {pieData.map((d) => (
+                      <Cell key={d.name} fill={categoryColor(d.name)} />
+                    ))}
                   </Pie>
-                  <Tooltip formatter={v => fmtINR(v)} contentStyle={{ fontSize: 12 }} />
-                  <Legend wrapperStyle={{ fontFamily: 'var(--font-plex-sans)', fontSize: 11 }} />
+                  <Tooltip
+                    formatter={(v) => fmtINR(v)}
+                    contentStyle={{ fontSize: 12 }}
+                  />
+                  <Legend
+                    wrapperStyle={{
+                      fontFamily: "var(--font-plex-sans)",
+                      fontSize: 11,
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <EmptyState title="No assets yet">Add holdings or accounts to see your mix.</EmptyState>
+              <EmptyState title="No assets yet">
+                Add holdings or accounts to see your mix.
+              </EmptyState>
             )}
           </div>
         </Card>
         <Card padded={false} className="overflow-x-auto">
           <table>
-            <thead><tr><th>Category</th><th className="num">Value</th><th className="num">Share</th></tr></thead>
+            <thead>
+              <tr className="[&>th]:pt-4 [&>th]:pb-3">
+                <th>Category</th>
+                <th className="num">Value</th>
+                <th className="num">Share</th>
+              </tr>
+            </thead>
             <tbody>
               {pieData.length ? (
-                [...pieData].sort((a, b) => b.value - a.value).map(({ name, value }) => (
-                  <tr key={name}>
-                    <td>
-                      <span className="inline-block w-2.5 h-2.5 rounded-sm mr-2" style={{ background: categoryColor(name) }} />
-                      <span className="dark:text-gray-200">{name}</span>
-                    </td>
-                    <td className="num"><Amount>{fmtINR(value)}</Amount></td>
-                    <td className="num text-inkMuted dark:text-gray-400">{nw ? ((value / nw) * 100).toFixed(1) : '0.0'}%</td>
-                  </tr>
-                ))
+                [...pieData]
+                  .sort((a, b) => b.value - a.value)
+                  .map(({ name, value }) => (
+                    <tr key={name}>
+                      <td>
+                        <span
+                          className="inline-block w-2.5 h-2.5 rounded-sm mr-2"
+                          style={{ background: categoryColor(name) }}
+                        />
+                        <span className="dark:text-gray-200">{name}</span>
+                      </td>
+                      <td className="num">
+                        <Amount>{fmtINR(value)}</Amount>
+                      </td>
+                      <td className="num text-inkMuted dark:text-gray-400">
+                        {nw ? ((value / nw) * 100).toFixed(1) : "0.0"}%
+                      </td>
+                    </tr>
+                  ))
               ) : (
-                <tr><td colSpan={3} className="text-center text-inkMuted py-4">No assets yet</td></tr>
+                <tr>
+                  <td colSpan={3} className="text-center text-inkMuted py-4">
+                    No assets yet
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -182,23 +298,53 @@ export default function NetWorthSection() {
       </div>
 
       {/* Past net worth entry modal */}
-      <Modal open={pastModalOpen} onClose={() => setPastModalOpen(false)} title="Add a past net worth entry">
+      <Modal
+        open={pastModalOpen}
+        onClose={() => setPastModalOpen(false)}
+        title="Add a past net worth entry"
+      >
         <p className="text-[12.5px] text-inkMuted dark:text-gray-400 mb-4">
-          Enter a historical figure from your spreadsheet to fill in the chart going back further.
+          Enter a historical figure from your spreadsheet to fill in the chart
+          going back further.
         </p>
         <div className="grid grid-cols-2 gap-3 mb-3">
           <Field label="Date">
-            <input type="date" className={inputClass} value={pastForm.date} onChange={e => setPastForm({ ...pastForm, date: e.target.value })} />
+            <input
+              type="date"
+              className={inputClass}
+              value={pastForm.date}
+              onChange={(e) =>
+                setPastForm({ ...pastForm, date: e.target.value })
+              }
+            />
           </Field>
           <Field label="Net worth on that date">
-            <input type="number" step="1000" className={inputClass} placeholder="e.g. 500000" value={pastForm.netWorth} onChange={e => setPastForm({ ...pastForm, netWorth: e.target.value })} />
+            <input
+              type="number"
+              step="1000"
+              className={inputClass}
+              placeholder="e.g. 500000"
+              value={pastForm.netWorth}
+              onChange={(e) =>
+                setPastForm({ ...pastForm, netWorth: e.target.value })
+              }
+            />
           </Field>
         </div>
         <Field label="Notes (optional)">
-          <input className={inputClass} placeholder="e.g. From FY24 spreadsheet" value={pastForm.notes} onChange={e => setPastForm({ ...pastForm, notes: e.target.value })} />
+          <input
+            className={inputClass}
+            placeholder="e.g. From FY24 spreadsheet"
+            value={pastForm.notes}
+            onChange={(e) =>
+              setPastForm({ ...pastForm, notes: e.target.value })
+            }
+          />
         </Field>
         <ModalActions>
-          <Btn variant="secondary" onClick={() => setPastModalOpen(false)}>Cancel</Btn>
+          <Btn variant="secondary" onClick={() => setPastModalOpen(false)}>
+            Cancel
+          </Btn>
           <Btn onClick={submitPast}>Save entry</Btn>
         </ModalActions>
       </Modal>
