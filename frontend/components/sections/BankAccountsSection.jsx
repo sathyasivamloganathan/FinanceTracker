@@ -7,7 +7,7 @@ import { Card, SectionTitle, StatCard, Btn, IconBtn, Field, inputClass, EmptySta
 import { Amount } from '@/lib/PrivacyContext';
 import Modal, { ModalActions } from '@/components/Modal';
 import { IconPlus, IconTrash, IconEdit } from '@/components/Icons';
-import { fmtINR, todayStr, confirmDelete, monthKey, monthLabel } from '@/lib/utils';
+import { fmtINR, todayStr, confirmDelete, monthKey, monthLabel, cleanDescription } from '@/lib/utils';
 import { BANK_ACCOUNT_TYPES } from '@/lib/constants';
 
 const ACCOUNT_COLORS = ['#2563EB','#059669','#7C3AED','#C2410C','#0891B2','#BE185D','#D97706','#16A34A'];
@@ -16,7 +16,7 @@ const TYPE_LABEL = { expense: 'Expense', income: 'Income', transfer: 'Transfer',
 const TYPE_TONE  = { expense: 'sell', income: 'buy', transfer: 'mf', atm_withdrawal: 'gold' };
 
 export default function BankAccountsSection() {
-  const { state, ready, addBankAccount, updateBankAccount, deleteBankAccount, transferBetweenAccounts, addExpense } = useFinance();
+  const { state, ready, addBankAccount, updateBankAccount, deleteBankAccount, transferBetweenAccounts, addExpense, notify } = useFinance();
   const [modalOpen, setModalOpen]     = useState(false);
   const [editingId, setEditingId]     = useState(null);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -59,42 +59,48 @@ export default function BankAccountsSection() {
     setModalOpen(true);
   }
 
-  function submit() {
-    if (!form.name.trim()) return alert('Enter account name');
-    if (editingId) updateBankAccount(editingId, { name: form.name.trim(), type: form.type, balance: Number(form.balance) || 0, color: form.color, notes: form.notes.trim() });
-    else addBankAccount({ name: form.name.trim(), type: form.type, balance: Number(form.balance) || 0, color: form.color, notes: form.notes.trim() });
-    setModalOpen(false);
+  async function submit() {
+    if (!form.name.trim()) return notify('Enter account name');
+    if (form.balance !== '' && !Number.isFinite(Number(form.balance))) return notify('Balance must be a number');
+    const payload = { name: form.name.trim(), type: form.type, balance: Number(form.balance) || 0, color: form.color, notes: form.notes.trim() };
+    const ok = editingId ? await updateBankAccount(editingId, payload) : await addBankAccount(payload);
+    if (ok) setModalOpen(false);
   }
 
-  function submitTransfer() {
+  async function submitTransfer() {
     const amt = Number(txForm.amount);
-    if (!txForm.fromId) return alert('Select source account');
-    if (!txForm.toId)   return alert('Select destination account');
-    if (txForm.fromId === txForm.toId) return alert('Source and destination must differ');
-    if (!(amt > 0)) return alert('Enter a valid amount');
-    transferBetweenAccounts({ fromId: txForm.fromId, toId: txForm.toId, amount: amt, date: txForm.date, notes: txForm.notes });
-    setTransferOpen(false);
-    setTxForm({ fromId: '', toId: '', amount: '', date: todayStr(), notes: '' });
+    if (!txForm.fromId) return notify('Select source account');
+    if (!txForm.toId)   return notify('Select destination account');
+    if (txForm.fromId === txForm.toId) return notify('Source and destination must differ');
+    if (!(amt > 0)) return notify('Enter a valid amount');
+    const ok = await transferBetweenAccounts({ fromId: txForm.fromId, toId: txForm.toId, amount: amt, date: txForm.date, notes: txForm.notes });
+    if (ok) {
+      setTransferOpen(false);
+      setTxForm({ fromId: '', toId: '', amount: '', date: todayStr(), notes: '' });
+    }
   }
 
-  function submitAtm() {
+  async function submitAtm() {
     const amt = Number(atmForm.amount);
-    if (!atmForm.fromId) return alert('Select account');
-    if (!(amt > 0)) return alert('Enter a valid amount');
-    transferBetweenAccounts({ fromId: atmForm.fromId, toId: null, amount: amt, date: atmForm.date, notes: atmForm.notes || 'ATM Withdrawal' });
-    setAtmOpen(false);
-    setAtmForm({ fromId: '', amount: '', date: todayStr(), notes: '' });
+    if (!atmForm.fromId) return notify('Select account');
+    if (!(amt > 0)) return notify('Enter a valid amount');
+    const ok = await transferBetweenAccounts({ fromId: atmForm.fromId, toId: '', amount: amt, date: atmForm.date, notes: atmForm.notes || 'ATM Withdrawal' });
+    if (ok) {
+      setAtmOpen(false);
+      setAtmForm({ fromId: '', amount: '', date: todayStr(), notes: '' });
+    }
   }
 
-  function submitIncome() {
+  // One atomic request: the server records the income AND credits the account.
+  async function submitIncome() {
     const amt = Number(incForm.amount);
-    if (!incForm.toId) return alert('Select account');
-    if (!(amt > 0)) return alert('Enter amount');
-    const acct = accounts.find(a => a.id === incForm.toId);
-    updateBankAccount(incForm.toId, { balance: (acct?.balance || 0) + amt });
-    addExpense({ date: incForm.date, category: 'Income', description: incForm.description || 'Income credited', amount: amt, accountId: incForm.toId, expenseType: 'income' });
-    setIncomeOpen(false);
-    setIncForm({ toId: '', amount: '', date: todayStr(), description: '' });
+    if (!incForm.toId) return notify('Select account');
+    if (!(amt > 0)) return notify('Enter amount');
+    const ok = await addExpense({ date: incForm.date, category: 'Income', description: incForm.description || 'Income credited', amount: amt, accountId: incForm.toId, expenseType: 'income' });
+    if (ok) {
+      setIncomeOpen(false);
+      setIncForm({ toId: '', amount: '', date: todayStr(), description: '' });
+    }
   }
 
   const drillHistory = selectedAcct ? accountHistory(selectedAcct.id) : [];
@@ -172,7 +178,7 @@ export default function BankAccountsSection() {
                             <td className="mono text-inkMuted dark:text-gray-400 whitespace-nowrap text-xs">{e.date}</td>
                             <td><Tag tone={TYPE_TONE[eType] || 'def'}>{TYPE_LABEL[eType] || eType}</Tag></td>
                             <td><Tag>{e.category}</Tag></td>
-                            <td className="text-ink dark:text-gray-200 text-[12.5px] max-w-[150px]">{e.description || '—'}</td>
+                            <td className="text-ink dark:text-gray-200 text-[12.5px] max-w-[150px]">{cleanDescription(e.description) || '—'}</td>
                             <td className="text-inkMuted dark:text-gray-500 text-xs">{e.notes || '—'}</td>
                             <td className={`num font-mono ${isIncome ? 'text-emerald' : 'text-ink dark:text-gray-100'}`}>
                               <Amount>{isIncome ? '+' : ''}{fmtINR(e.amount)}</Amount>

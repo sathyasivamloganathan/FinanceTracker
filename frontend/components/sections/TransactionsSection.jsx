@@ -13,7 +13,7 @@ import { HOLDING_TYPES, API_BASE } from '@/lib/constants';
 const PAGE_SIZE = 10;
 
 export default function TransactionsSection() {
-  const { state, ready, addTransaction, updateTransaction, deleteTransaction } = useFinance();
+  const { state, ready, addTransaction, updateTransaction, deleteTransaction, notify } = useFinance();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState('all');
@@ -70,19 +70,17 @@ export default function TransactionsSection() {
     setModalOpen(true);
   }
 
-  function submit() {
-    const qty = Number(form.qty) || 0;
-    const price = Number(form.price) || 0;
-    if (qty <= 0 || price <= 0) return alert('Enter quantity and price');
-    const amount = Number(form.amount) || qty * price;
-    if (editingId) {
-      updateTransaction(editingId, { date: form.date, qty, price, amount, notes: form.notes.trim() });
-    } else {
-      const name = form.name.trim();
-      if (!name) return alert('Enter an instrument name');
-      addTransaction({ date: form.date || todayStr(), type: form.type, assetType: form.assetType, name, symbol: form.symbol.trim(), qty, price, amount, notes: form.notes.trim() });
-    }
-    setModalOpen(false);
+  async function submit() {
+    const qty = Number(form.qty);
+    const price = Number(form.price);
+    if (!(qty > 0) || !(price > 0)) return notify('Enter a quantity and price greater than zero');
+    const amount = Number(form.amount) > 0 ? Number(form.amount) : qty * price;
+    const name = form.name.trim();
+    if (!name) return notify('Enter an instrument name');
+    // Editing now re-applies the change to the holding on the server, so every field can be corrected.
+    const payload = { date: form.date || todayStr(), type: form.type, assetType: form.assetType, name, symbol: form.symbol.trim(), qty, price, amount, notes: form.notes.trim() };
+    const ok = editingId ? await updateTransaction(editingId, payload) : await addTransaction(payload);
+    if (ok) setModalOpen(false);
   }
 
   return (
