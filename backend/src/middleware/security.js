@@ -1,112 +1,101 @@
 const helmet = require('helmet');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
-const rateLimit = require('express-rate-limit');
+const { getConfig } = require('../config/env');
+const { ipKey } = require('../utils/ip');
 
-// ─── Input size limits ────────────────────────────────────────────────
-// Enforced in server.js via express.json({ limit: '200kb' }).
-// No single user action requires more than a few KB. This prevents
-// request-body-based memory exhaustion.
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
-// ─── CORS ────────────────────────────────────────────────────────────
-function applySecurity(app) {
-  app.set('trust proxy', true);
+// ── Runs BEFORE body parsing ─────────────────────────────────────────
+function securityPre(app) {
+  const cfg = getConfig();
 
-  // Helmet: secure HTTP headers
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"], // Next.js inline scripts
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", 'data:', 'blob:'],
-          connectSrc: ["'self'"],
-          fontSrc: ["'self'"],
-          objectSrc: ["'none'"],
-          upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
-        },
-      },
-      crossOriginResourcePolicy: { policy: 'same-site' },
-      hsts: process.env.NODE_ENV === 'production'
-        ? { maxAge: 31536000, includeSubDomains: true, preload: true }
-        : false,
-      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-      noSniff: true,
-      frameguard: { action: 'deny' }, // clickjacking protection
-      xssFilter: true,
-    })
-  );
+  // Exact number of reverse-proxy hops. `true` would let any client spoof
+  // X-Forwarded-For and walk around every IP-based limiter.
+  app.set('trust proxy', cfg.trustProxy);
+  app.disable('x-powered-by');
 
-  const allowedOrigins = (process.env.CLIENT_ORIGINS || 'http://localhost:3000')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  app.use(
-    cors({
-      origin(origin, callback) {
-        // Allow server-to-server (no origin) and whitelisted origins only
-        if (!origin || allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
-        return callback(new Error(`Origin ${origin} not allowed by CORS`));
-      },
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
-      maxAge: 86400, // preflight cache 24h
-    })
-  );
-
-  // Strip MongoDB operator injection ($, .) from all user input
-  app.use(mongoSanitize({
-    replaceWith: '_',
-    onSanitizeError: (req, key) => {
-      console.warn(`[security] MongoSanitize blocked key "${key}" from ${req.ip}`);
-    },
+  // This service only returns JSON, so the CSP is "nothing is allowed".
+  app.use(helmet({
+    contentSecurityPolicy: { useDefaults: false, directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"], baseUri: ["'none'"], formAction: ["'none'"] } },
+    crossOriginResourcePolicy: { policy: 'same-site' },
+    referrerPolicy: { policy: 'no-referrer' },
+    hsts: { maxAge: 63072000, includeSubDomains: true, preload: true },
   }));
 
-  // Prevent HTTP parameter pollution
+  const allowed = new Set(cfg.clientOrigins);
+  app.use(cors({
+    origin(origin, cb) {
+      if (!origin) return cb(null, true); // non-browser clients / same-origin; unsafe methods are checked by csrfGuard
+      if (allowed.has(origin)) return cb(null, true);
+      return cb(new Error('Origin not allowed by CORS'));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
+    maxAge: 600,
+  }));
+}
+
+// ── Runs AFTER body parsing + cookies ────────────────────────────────
+// (express-mongo-sanitize and hpp only see req.body if it already exists.)
+function securityPost(app) {
+  app.use(mongoSanitize({ replaceWith: '_' }));
   app.use(hpp());
+  app.use(csrfGuard);
 }
 
-// ─── Rate limiters ───────────────────────────────────────────────────
-function ipKey(req) {
-  return (req.ip || 'unknown').replace(/:\d+$/, '');
+// CSRF defence for cookie-authenticated requests:
+//  1. Unsafe methods must come from an allow-listed Origin (browsers always
+//     send Origin on cross-origin and on same-origin POST/PUT/PATCH/DELETE).
+//  2. A request carrying the session cookie but NO Origin is refused.
+//  3. Request bodies must be application/json (HTML forms can only send
+//     urlencoded / multipart / text, so they can never reach a handler).
+function csrfGuard(req, res, next) {
+  if (SAFE_METHODS.has(req.method)) return next();
+  const cfg = getConfig();
+  const origin = req.get('origin');
+  if (origin) {
+    if (!cfg.clientOrigins.includes(origin)) return res.status(403).json({ error: 'Cross-origin request blocked' });
+  } else if (req.cookies && req.cookies.token) {
+    return res.status(403).json({ error: 'Cross-origin request blocked' });
+  }
+  const hasBody = Number(req.get('content-length') || 0) > 0 || req.get('transfer-encoding');
+  if (hasBody && !req.is('application/json')) {
+    return res.status(415).json({ error: 'Content-Type must be application/json' });
+  }
+  next();
 }
 
-// Global: 300 requests / 15 min per IP
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: ipKey,
-  message: { error: 'Too many requests — please slow down.' },
-});
+const limiterBase = { standardHeaders: true, legacyHeaders: false, keyGenerator: ipKey, message: { error: 'Too many requests — please slow down and try again shortly.' } };
 
-// Auth routes: 15 attempts / 15 min per IP (brute-force protection)
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 15,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: ipKey,
-  message: { error: 'Too many login attempts — try again in 15 minutes.' },
-  skipSuccessfulRequests: true, // only count failures toward the limit
-});
-
-// Write operations: 100 mutations / 15 min per IP
+const generalLimiter = rateLimit({ ...limiterBase, windowMs: 15 * 60 * 1000, limit: 400 });
 const writeLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: ipKey,
-  message: { error: 'Too many write requests — please slow down.' },
-  skip: (req) => req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS',
+  ...limiterBase, windowMs: 15 * 60 * 1000, limit: 300,
+  skip: (req) => SAFE_METHODS.has(req.method),
 });
+// Per IP; only failed attempts count.
+const authLimiter = rateLimit({
+  ...limiterBase, windowMs: 15 * 60 * 1000, limit: 20, skipSuccessfulRequests: true,
+  message: { error: 'Too many attempts — please wait a few minutes and try again.' },
+});
+// Per target account (e-mail), independent of the caller's IP.
+const emailKey = (req) => `e:${String(req.body?.email || '').toLowerCase().trim().slice(0, 254)}`;
+const perEmailLimiter = rateLimit({
+  ...limiterBase, windowMs: 15 * 60 * 1000, limit: 10, skipSuccessfulRequests: true, keyGenerator: emailKey,
+  message: { error: 'Too many attempts — please wait a few minutes and try again.' },
+});
+// Very low-volume, abuse-prone actions (e-mail sending, password checks).
+const makeSensitiveLimiter = (limit, windowMs = 60 * 60 * 1000) => rateLimit({
+  ...limiterBase, windowMs, limit,
+  keyGenerator: (req) => `u:${req.user ? String(req.user._id) : 'anon'}`,
+  message: { error: 'Too many requests for this action — try again later.' },
+});
+const ipSensitiveLimiter = (limit, windowMs = 60 * 60 * 1000) => rateLimit({ ...limiterBase, windowMs, limit });
 
-module.exports = { applySecurity, generalLimiter, authLimiter, writeLimiter };
+module.exports = {
+  securityPre, securityPost, csrfGuard,
+  generalLimiter, writeLimiter, authLimiter, perEmailLimiter, makeSensitiveLimiter, ipSensitiveLimiter,
+};

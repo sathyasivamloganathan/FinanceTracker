@@ -8,7 +8,7 @@ import { Card, SectionTitle, StatCard, Tag, EmptyState } from '@/components/ui';
 import { Amount } from '@/lib/PrivacyContext';
 import {
   netWorth,
-  computeCategoryTotals,
+  allocationTotals,
   holdingInvestedValue,
   holdingCurrentValue,
   totalCurrentEquityValue,
@@ -20,6 +20,7 @@ import {
   fmtINR,
   fmtPct,
   dueStatus,
+  cleanDescription,
 } from '@/lib/utils';
 
 export default function InsightsSection() {
@@ -56,8 +57,8 @@ export default function InsightsSection() {
     const topCategories = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const biggestExpenses = [...thisMonthExpenses].sort((a, b) => b.amount - a.amount).slice(0, 5);
 
-    const totals = computeCategoryTotals(state);
-    const nw = netWorth(state);
+    // Same basis as the Allocation tab: % of gross assets, cash-like items grouped under "Cash".
+    const { buckets: totals, gross: nw } = allocationTotals(state);
     const drift = Object.keys({ ...totals, ...state.targets })
       .map((cat) => {
         const actualPct = nw ? ((totals[cat] || 0) / nw) * 100 : 0;
@@ -71,7 +72,7 @@ export default function InsightsSection() {
     const nwTrend = snapshots.map((s) => ({ name: s.date, value: s.netWorth }));
 
     const dueSoon = state.insurance.filter((p) => {
-      const s = dueStatus(p.dueDate);
+      const s = dueStatus(p.dueDate, p.frequency);
       return s.cls === 'soon' || s.cls === 'late';
     });
 
@@ -229,7 +230,7 @@ export default function InsightsSection() {
                   <td>
                     <Tag>{e.category}</Tag>
                   </td>
-                  <td>{e.description || '—'}</td>
+                  <td>{cleanDescription(e.description) || '—'}</td>
                   <td className="num">
                     <Amount>{fmtINR(e.amount)}</Amount>
                   </td>
