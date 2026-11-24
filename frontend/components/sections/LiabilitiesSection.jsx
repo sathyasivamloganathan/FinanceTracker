@@ -12,23 +12,26 @@ import { fmtINR, totalLiabilities, confirmDelete } from '@/lib/utils';
 import { LIABILITY_TYPES } from '@/lib/constants';
 
 export default function LiabilitiesSection() {
-  const { state, ready, addLiability, updateLiability, deleteLiability } = useFinance();
+  const { state, ready, addLiability, updateLiability, deleteLiability, notify } = useFinance();
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ name: '', type: 'Home Loan', amount: '', interestRate: '', notes: '' });
 
   if (!ready || !state) return <SectionLoader />;
 
-  function submit() {
-    if (!form.name.trim()) return alert('Enter a name');
-    addLiability({
+  async function submit() {
+    if (!form.name.trim()) return notify('Enter a name');
+    if (form.amount !== '' && !(Number(form.amount) >= 0)) return notify('Amount must be a number');
+    const ok = await addLiability({
       name: form.name.trim(),
       type: form.type,
       amount: Number(form.amount) || 0,
       interestRate: Number(form.interestRate) || 0,
       notes: form.notes.trim(),
     });
-    setForm({ name: '', type: 'Home Loan', amount: '', interestRate: '', notes: '' });
-    setModalOpen(false);
+    if (ok) {
+      setForm({ name: '', type: 'Home Loan', amount: '', interestRate: '', notes: '' });
+      setModalOpen(false);
+    }
   }
 
   return (
