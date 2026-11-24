@@ -1,49 +1,50 @@
 const { verifyToken } = require('../utils/jwt');
+const { clearAuthCookie } = require('../utils/cookies');
+const { isObjectId } = require('../utils/validate');
 const User = require('../models/User');
 
-// Reads the httpOnly "token" cookie, verifies the JWT signature and
-// expiry, and attaches the fully-loaded user document to req.user.
-//
-// Security properties:
-// • httpOnly cookie → JS running in the page cannot read it (XSS-safe)
-// • sameSite: 'none' + secure in prod → CSRF mitigated for cross-site reqs
-// • 7-day JWT expiry → session can't live forever even if leaked
-// • User re-fetched from DB on every request → deleted/suspended accounts
-//   are blocked immediately without waiting for the token to expire
-// • Generic 401 on any auth failure → no oracle for "user exists" vs "bad pw"
-
+// Reads the httpOnly session cookie, verifies signature, expiry and the
+// user's tokenVersion (so logout-everywhere / password change really revoke
+// old tokens), and attaches the user document (without secrets) to req.user.
 async function requireAuth(req, res, next) {
   try {
     const token = req.cookies?.token;
-    if (!token) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
+    if (!token || typeof token !== 'string') return res.status(401).json({ error: 'Not authenticated' });
 
     let payload;
     try {
       payload = verifyToken(token);
-    } catch (e) {
-      // expired or tampered — clear the stale cookie so the browser doesn't
-      // keep sending it on every request after the user refreshes
-      res.clearCookie('token', { httpOnly: true, sameSite: 'none', secure: process.env.NODE_ENV === 'production', path: '/' });
+    } catch {
+      clearAuthCookie(res);
       return res.status(401).json({ error: 'Session expired — please log in again' });
     }
-
-    // sub must be a valid MongoDB ObjectId-shaped string
-    if (!payload?.sub || typeof payload.sub !== 'string') {
+    if (!payload || typeof payload.sub !== 'string' || !isObjectId(payload.sub)) {
+      clearAuthCookie(res);
       return res.status(401).json({ error: 'Invalid session' });
     }
 
-    const user = await User.findById(payload.sub).select('-__v');
-    if (!user) {
-      return res.status(401).json({ error: 'Account not found' });
+    // NOTE: __v is intentionally NOT excluded — Mongoose's optimistic
+    // concurrency check on array writes depends on it.
+    const user = await User.findById(payload.sub);
+    if (!user) { clearAuthCookie(res); return res.status(401).json({ error: 'Account not found' }); }
+    if ((payload.tv ?? 0) !== (user.tokenVersion ?? 0)) {
+      clearAuthCookie(res);
+      return res.status(401).json({ error: 'Session expired — please log in again' });
     }
 
     req.user = user;
+    req.tokenIat = payload.iat; // seconds; used for "recently signed in" checks
     next();
   } catch (err) {
     next(err);
   }
 }
 
-module.exports = { requireAuth };
+// Sensitive actions (setting a first password, deleting the account) need a
+// session that was created recently.
+const FRESH_SECONDS = 15 * 60;
+function isFreshSession(req) {
+  return typeof req.tokenIat === 'number' && (Date.now() / 1000 - req.tokenIat) < FRESH_SECONDS;
+}
+
+module.exports = { requireAuth, isFreshSession };

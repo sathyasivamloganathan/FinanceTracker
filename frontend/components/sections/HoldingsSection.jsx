@@ -19,7 +19,7 @@ const SYNC_BADGE = {
 };
 
 export default function HoldingsSection() {
-  const { state, ready, addTransaction, updateHoldingRate, updateHolding, deleteHolding, syncHoldingNow } = useFinance();
+  const { state, ready, addTransaction, updateHoldingRate, updateHolding, deleteHolding, syncHoldingNow, notify } = useFinance();
   const [modalOpen, setModalOpen] = useState(false);
   const [historyFor, setHistoryFor] = useState(null);
   const [editSymbolFor, setEditSymbolFor] = useState(null);
@@ -51,23 +51,25 @@ export default function HoldingsSection() {
   const allInv = stockInv + mfInv + goldInv;
   const allCur = stockCur + mfCur + goldCur;
 
-  function submit() {
+  async function submit() {
     const name = form.name.trim();
-    const qty = Number(form.qty) || 0;
-    const price = Number(form.price) || 0;
-    if (!name) return alert('Enter a name');
-    if (qty <= 0 || price <= 0) return alert('Enter quantity and the price you paid');
-    addTransaction({
+    const qty = Number(form.qty);
+    const price = Number(form.price);
+    if (!name) return notify('Enter a name');
+    if (!(qty > 0) || !(price > 0)) return notify('Enter quantity and the price you paid');
+    const ok = await addTransaction({
       date: form.date || todayStr(), type: 'Buy', assetType: form.assetType,
       name, symbol: form.symbol.trim(), qty, price, amount: qty * price, notes: '',
     });
-    setForm({ name: '', symbol: '', assetType: 'Stock', qty: '', price: '', date: todayStr() });
-    setModalOpen(false);
+    if (ok) {
+      setForm({ name: '', symbol: '', assetType: 'Stock', qty: '', price: '', date: todayStr() });
+      setModalOpen(false);
+    }
   }
 
   async function syncNow(id) {
     setSyncingId(id);
-    try { await syncHoldingNow(id); } catch (e) { alert(e.message); } finally { setSyncingId(null); }
+    try { await syncHoldingNow(id); } finally { setSyncingId(null); }
   }
 
   const displayHoldings = state.holdings.filter((h) => filterType === 'all' || h.assetType === filterType);

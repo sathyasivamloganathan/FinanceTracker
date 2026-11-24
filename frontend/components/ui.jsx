@@ -1,3 +1,7 @@
+'use client';
+
+import { useState, useRef, useEffect, useId, isValidElement, cloneElement } from 'react';
+
 export function Card({ children, className = '', padded = true }) {
   return (
     <div className={`bg-paperCard dark:bg-gray-800 border border-line dark:border-gray-700 rounded-card shadow-card ${padded ? 'p-5' : ''} ${className}`}>
@@ -63,16 +67,31 @@ export function EmptyState({ title, children }) {
   );
 }
 
-export function Btn({ children, variant = 'primary', className = '', ...rest }) {
-  const base = 'inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-[13px] font-semibold cursor-pointer border';
+export function Btn({ children, variant = 'primary', className = '', onClick, disabled, ...rest }) {
+  const base = 'inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-[13px] font-semibold cursor-pointer border disabled:opacity-60 disabled:cursor-not-allowed';
   const variants = {
     primary: 'bg-ink text-white border-ink hover:bg-[#0d1319] dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600',
     secondary: 'bg-transparent text-ink dark:text-gray-200 border-line dark:border-gray-600 hover:border-ink dark:hover:border-gray-400',
     ghost: 'bg-transparent text-accent border-transparent px-2 py-1.5',
     danger: 'bg-transparent text-clay border-clayBg hover:bg-clayBg',
   };
+  // If the click handler is async, the button disables itself until it settles,
+  // so a double-tap can never submit the same form (and create a duplicate) twice.
+  const [pending, setPending] = useState(false);
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
+  async function handleClick(e) {
+    if (!onClick) return;
+    if (pending) { e.preventDefault(); return; }
+    let result;
+    try { result = onClick(e); } catch (err) { console.error(err); return; }
+    if (result && typeof result.then === 'function') {
+      setPending(true);
+      try { await result; } catch (err) { console.error(err); } finally { if (alive.current) setPending(false); }
+    }
+  }
   return (
-    <button className={`${base} ${variants[variant]} ${className}`} {...rest}>
+    <button className={`${base} ${variants[variant]} ${className}`} onClick={handleClick} disabled={disabled || pending} aria-busy={pending || undefined} {...rest}>
       {children}
     </button>
   );
@@ -81,18 +100,22 @@ export function Btn({ children, variant = 'primary', className = '', ...rest }) 
 export function IconBtn({ children, danger = true, ...rest }) {
   const hoverClass = danger ? 'hover:text-clay' : 'hover:text-accent';
   return (
-    <button className={`bg-transparent border-none cursor-pointer p-1 text-inkMuted dark:text-gray-400 ${hoverClass}`} {...rest}>
+    <button type="button" className={`bg-transparent border-none cursor-pointer p-1 text-inkMuted dark:text-gray-400 ${hoverClass}`} {...rest}>
       {children}
     </button>
   );
 }
 
 export function Field({ label, children, hint }) {
+  const autoId = useId();
+  const child = isValidElement(children) ? children : null;
+  const id = (child && child.props.id) || autoId;
+  const describedBy = hint ? `${id}-hint` : undefined;
   return (
     <div>
-      <label className="block font-mono text-[10.5px] uppercase tracking-wide text-inkMuted dark:text-gray-400 mb-1.5">{label}</label>
-      {children}
-      {hint && <p className="text-[11.5px] text-inkMuted dark:text-gray-500 mt-1">{hint}</p>}
+      <label htmlFor={child ? id : undefined} className="block font-mono text-[10.5px] uppercase tracking-wide text-inkMuted dark:text-gray-400 mb-1.5">{label}</label>
+      {child ? cloneElement(child, { id, 'aria-describedby': child.props['aria-describedby'] || describedBy }) : children}
+      {hint && <p id={describedBy} className="text-[11.5px] text-inkMuted dark:text-gray-500 mt-1">{hint}</p>}
     </div>
   );
 }
