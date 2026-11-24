@@ -5,20 +5,25 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
 import { Field, inputClass, Btn } from '@/components/ui';
 import GoogleButton from '@/components/GoogleButton';
-import Logo from '@/components/Logo';
+import AuthCard from '@/components/AuthCard';
+
+const URL_ERRORS = {
+  google_auth_failed: 'Google sign-in failed — please try again, or use email and password.',
+  google_email_unverified: 'Your Google account’s e-mail address is not verified, so it can’t be used to sign in.',
+};
 
 export default function LoginPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [show, setShow] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get('error') === 'google_auth_failed') {
-      setError('Google sign-in failed — please try again, or use email and password.');
+    const code = params.get('error');
+    if (code) {
+      setError(URL_ERRORS[code] || 'Sign-in failed.');
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -26,38 +31,31 @@ export default function LoginPage() {
   async function submit(e) {
     e.preventDefault();
     setError('');
-    setLoading(true);
     try {
       await login(email, password);
     } catch (err) {
       setError(err.message || 'Login failed');
-    } finally {
-      setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-paper px-4">
-      <div className="w-full max-w-sm bg-paperCard border border-line rounded-card shadow-card p-7">
-        <div className="flex items-center gap-2.5 mb-1"><Logo size={30} /><span className="font-display font-bold text-[22px] text-ink">Vantage</span></div>
-        <p className="text-inkMuted text-[13px] mb-6">Log in to your private finance desk.</p>
-        <GoogleButton label="Continue with Google" />
-        <form onSubmit={submit} className="space-y-4">
-          <Field label="Email">
-            <input type="email" required className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-          </Field>
-          <Field label="Password">
-            <input type="password" required className={inputClass} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
-          </Field>
-          {error && <p className="text-clay text-[12.5px]">{error}</p>}
-          <Btn className="w-full justify-center" disabled={loading}>
-            {loading ? 'Logging in…' : 'Log in'}
-          </Btn>
-        </form>
-        <p className="text-inkMuted text-[13px] mt-5 text-center">
-          No account? <Link href="/register" className="text-accent font-semibold">Register</Link>
-        </p>
-      </div>
-    </div>
+    <AuthCard subtitle="Log in to your private finance desk.">
+      <GoogleButton label="Continue with Google" />
+      <form onSubmit={submit} className="space-y-4">
+        <Field label="Email">
+          <input type="email" required autoComplete="username" maxLength={254} className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+        </Field>
+        <Field label="Password">
+          <div className="relative">
+            <input type={show ? 'text' : 'password'} required autoComplete="current-password" maxLength={72} className={`${inputClass} pr-14`} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+            <button type="button" onClick={() => setShow((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-inkMuted hover:text-ink" aria-label={show ? 'Hide password' : 'Show password'}>{show ? 'Hide' : 'Show'}</button>
+          </div>
+        </Field>
+        {error && <p className="text-clay text-[12.5px]" role="alert">{error}</p>}
+        <Btn type="submit" className="w-full justify-center">Log in</Btn>
+      </form>
+      <p className="text-[13px] mt-4 text-center"><Link href="/forgot-password" className="text-accent font-semibold">Forgot your password?</Link></p>
+      <p className="text-inkMuted text-[13px] mt-3 text-center">No account? <Link href="/register" className="text-accent font-semibold">Register</Link></p>
+    </AuthCard>
   );
 }

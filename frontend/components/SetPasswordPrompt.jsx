@@ -10,20 +10,16 @@ export default function SetPasswordPrompt() {
   const [password, setPassword] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
   const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
 
   async function submit() {
     setError('');
     if (password.length < 8) return setError('Password must be at least 8 characters');
     if (password !== confirmPw) return setError('Passwords don\'t match');
-    setSaving(true);
     try {
       await changePassword(null, password);
       setShowSetPassword(false);
     } catch (e) {
       setError(e.message || 'Could not set password');
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -35,10 +31,10 @@ export default function SetPasswordPrompt() {
       </p>
       <div className="space-y-3">
         <Field label="New password" hint="At least 8 characters.">
-          <input type="password" className={inputClass} value={password} onChange={(e) => setPassword(e.target.value)} />
+          <input type="password" autoComplete="new-password" maxLength={72} className={inputClass} value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
         <Field label="Confirm password">
-          <input type="password" className={inputClass} value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} />
+          <input type="password" autoComplete="new-password" maxLength={72} className={inputClass} value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} />
         </Field>
       </div>
       {error && <p className="text-clay text-[12.5px] mt-2">{error}</p>}
@@ -46,9 +42,7 @@ export default function SetPasswordPrompt() {
         <Btn variant="secondary" onClick={() => setShowSetPassword(false)}>
           Skip for now
         </Btn>
-        <Btn onClick={submit} disabled={saving}>
-          {saving ? 'Saving…' : 'Set password'}
-        </Btn>
+        <Btn onClick={submit}>Set password</Btn>
       </ModalActions>
     </Modal>
   );

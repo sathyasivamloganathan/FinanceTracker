@@ -1,164 +1,117 @@
 const express = require('express');
 const asyncHandler = require('../utils/asyncHandler');
+const { mutating } = require('../utils/asyncHandler');
 const { serializeList } = require('../utils/serialize');
+const { todayStr, daysBetween } = require('../utils/dates');
+const { calcMaturity } = require('../utils/financeMath');
+const { closeFd } = require('../utils/fd');
+const { round2 } = require('../utils/money');
+const V = require('../utils/validate');
 
 const router = express.Router();
+const COMPOUNDING = ['Monthly', 'Quarterly', 'Half-yearly', 'Yearly', 'On maturity'];
 
-const VALID_COMPOUNDING = ['Monthly', 'Quarterly', 'Half-yearly', 'Yearly', 'On maturity'];
-const VALID_STATUS = ['active', 'matured', 'renewed', 'broken'];
+const reply = (u) => ({ fds: serializeList(u.fds), bankAccounts: serializeList(u.bankAccounts), otherAssets: serializeList(u.otherAssets) });
 
-function calcMaturity(principal, rate, startDate, maturityDate, compounding) {
-  const start = new Date(startDate);
-  const end   = new Date(maturityDate);
-  if (isNaN(start) || isNaN(end) || end <= start) return principal;
-  const years = (end - start) / (365.25 * 24 * 3600 * 1000);
-  const r = rate / 100;
-  const n = { Monthly: 12, Quarterly: 4, 'Half-yearly': 2, Yearly: 1, 'On maturity': 1 }[compounding] || 4;
-  const result = compounding === 'On maturity'
-    ? principal * (1 + r * years)
-    : principal * Math.pow(1 + r / n, n * years);
-  return Math.round(result * 100) / 100;
+function checkAccounts(user, ...ids) {
+  for (const id of ids) if (id && !user.bankAccounts.id(id)) throw V.bad('Selected account not found');
+}
+function checkDates(start, end) {
+  if (daysBetween(start, end) <= 0) throw V.bad('maturityDate must be after startDate');
+  if (daysBetween(start, end) > 365 * 50) throw V.bad('Tenure cannot exceed 50 years');
 }
 
-function isDate(s) { return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s); }
+router.get('/', asyncHandler(async (req, res) => res.json({ fds: serializeList(req.user.fds) })));
 
-router.get('/', asyncHandler(async (req, res) => {
-  res.json({ fds: serializeList(req.user.fds) });
-}));
+router.post('/', mutating(async (req, res) => {
+  const b = V.body(req);
+  const startDate = V.date(b.startDate, { field: 'startDate', required: true });
+  const maturityDate = V.date(b.maturityDate, { field: 'maturityDate', required: true });
+  checkDates(startDate, maturityDate);
+  const principal = V.num(b.principal, { field: 'principal', min: 0.01, max: 1e11, required: true });
+  const interestRate = V.num(b.interestRate, { field: 'interestRate', min: 0.01, max: 100, required: true });
+  const compounding = V.oneOf(b.compounding, COMPOUNDING, { field: 'compounding', fallback: 'Quarterly' });
+  const accountId = V.str(b.accountId, { field: 'accountId', max: 40 });
+  const creditToAccountId = V.str(b.creditToAccountId, { field: 'creditToAccountId', max: 40 });
+  checkAccounts(req.user, accountId, creditToAccountId);
 
-router.post('/', asyncHandler(async (req, res) => {
-  const { bankName, accountId, principal, interestRate, startDate, maturityDate, compounding, autoRenew, creditToAccountId, notes } = req.body || {};
-
-  if (!bankName || typeof bankName !== 'string' || !bankName.trim())
-    return res.status(400).json({ error: 'bankName is required' });
-  if (!(Number(principal) > 0))
-    return res.status(400).json({ error: 'principal must be a positive number' });
-  if (!(Number(interestRate) > 0) || Number(interestRate) > 100)
-    return res.status(400).json({ error: 'interestRate must be between 0 and 100' });
-  if (!isDate(startDate) || !isDate(maturityDate))
-    return res.status(400).json({ error: 'startDate and maturityDate must be YYYY-MM-DD' });
-  if (new Date(maturityDate) <= new Date(startDate))
-    return res.status(400).json({ error: 'maturityDate must be after startDate' });
-  if (compounding && !VALID_COMPOUNDING.includes(compounding))
-    return res.status(400).json({ error: 'Invalid compounding frequency' });
-
-  const principalNum = Number(principal);
-  const rateNum = Number(interestRate);
-  const comp = VALID_COMPOUNDING.includes(compounding) ? compounding : 'Quarterly';
-  const calculatedMaturity = calcMaturity(principalNum, rateNum, startDate, maturityDate, comp);
-  const maturityAmount = (req.body.maturityAmount && Number(req.body.maturityAmount) > 0) ? Number(req.body.maturityAmount) : calculatedMaturity;
-
-  // Validate linked account IDs belong to this user
-  if (accountId && !req.user.bankAccounts.id(accountId))
-    return res.status(400).json({ error: 'accountId references an account that does not exist' });
-  if (creditToAccountId && !req.user.bankAccounts.id(creditToAccountId))
-    return res.status(400).json({ error: 'creditToAccountId references an account that does not exist' });
-
+  const manual = V.num(b.maturityAmount, { field: 'maturityAmount', min: 0, max: 1e12 });
   req.user.fds.push({
-    bankName: String(bankName).trim().slice(0, 120),
-    accountId: accountId || '',
-    principal: principalNum,
-    interestRate: rateNum,
-    startDate, maturityDate, maturityAmount, compounding: comp,
-    autoRenew: !!autoRenew,
-    creditToAccountId: creditToAccountId || '',
-    status: 'active',
-    notes: notes ? String(notes).trim().slice(0, 300) : '',
+    bankName: V.str(b.bankName, { field: 'bankName', required: true, max: 120 }),
+    accountId, principal, interestRate, startDate, maturityDate, compounding,
+    maturityAmount: manual > 0 ? round2(manual) : calcMaturity(principal, interestRate, startDate, maturityDate, compounding),
+    manualMaturity: manual > 0,
+    autoRenew: V.bool(b.autoRenew, { field: 'autoRenew', fallback: false }),
+    creditToAccountId, status: 'active', notes: V.str(b.notes, { field: 'notes', max: 300 }),
   });
   await req.user.save();
-  res.status(201).json({ fds: serializeList(req.user.fds) });
+  res.status(201).json(reply(req.user));
 }));
 
-router.patch('/:id', asyncHandler(async (req, res) => {
+router.patch('/:id', mutating(async (req, res) => {
+  V.objectId(req.params.id);
   const fd = req.user.fds.id(req.params.id);
   if (!fd) return res.status(404).json({ error: 'FD not found' });
+  const b = V.body(req);
+  let recompute = false;
 
-  const { bankName, accountId, principal, interestRate, startDate, maturityDate, compounding, autoRenew, creditToAccountId, status, notes } = req.body || {};
-
-  if (bankName !== undefined) {
-    if (!bankName.trim()) return res.status(400).json({ error: 'bankName cannot be empty' });
-    fd.bankName = String(bankName).trim().slice(0, 120);
-  }
-  if (accountId !== undefined) fd.accountId = accountId;
-  if (principal !== undefined) {
-    if (!(Number(principal) > 0)) return res.status(400).json({ error: 'principal must be positive' });
-    fd.principal = Number(principal);
-  }
-  if (interestRate !== undefined) {
-    if (!(Number(interestRate) > 0) || Number(interestRate) > 100) return res.status(400).json({ error: 'interestRate must be 0–100' });
-    fd.interestRate = Number(interestRate);
-  }
-  if (startDate !== undefined) {
-    if (!isDate(startDate)) return res.status(400).json({ error: 'startDate must be YYYY-MM-DD' });
-    fd.startDate = startDate;
-  }
-  if (maturityDate !== undefined) {
-    if (!isDate(maturityDate)) return res.status(400).json({ error: 'maturityDate must be YYYY-MM-DD' });
-    fd.maturityDate = maturityDate;
-  }
-  if (compounding !== undefined) {
-    if (!VALID_COMPOUNDING.includes(compounding)) return res.status(400).json({ error: 'Invalid compounding' });
-    fd.compounding = compounding;
-  }
-  if (autoRenew !== undefined) fd.autoRenew = !!autoRenew;
-  if (creditToAccountId !== undefined) {
-    if (creditToAccountId && !req.user.bankAccounts.id(creditToAccountId))
-      return res.status(400).json({ error: 'creditToAccountId not found' });
-    fd.creditToAccountId = creditToAccountId;
-  }
-  if (status !== undefined) {
-    if (!VALID_STATUS.includes(status)) return res.status(400).json({ error: 'Invalid status' });
-    fd.status = status;
-  }
-  if (notes !== undefined) fd.notes = String(notes).trim().slice(0, 300);
-
-  if (new Date(fd.maturityDate) <= new Date(fd.startDate))
-    return res.status(400).json({ error: 'maturityDate must be after startDate' });
-
-  fd.maturityAmount = calcMaturity(fd.principal, fd.interestRate, fd.startDate, fd.maturityDate, fd.compounding);
-  await req.user.save();
-  res.json({ fds: serializeList(req.user.fds) });
-}));
-
-router.post('/:id/mature', asyncHandler(async (req, res) => {
-  const fd = req.user.fds.id(req.params.id);
-  if (!fd) return res.status(404).json({ error: 'FD not found' });
-  if (fd.status !== 'active') return res.status(400).json({ error: 'Only active FDs can be matured' });
-
-  const today = new Date().toISOString().slice(0, 10);
-
-  if (fd.autoRenew) {
-    const tenureDays = Math.round((new Date(fd.maturityDate) - new Date(fd.startDate)) / 86400000);
-    const newStart = today;
-    const newEnd   = new Date(Date.now() + tenureDays * 86400000).toISOString().slice(0, 10);
-    const newAmt   = calcMaturity(fd.maturityAmount, fd.interestRate, newStart, newEnd, fd.compounding);
-    fd.status = 'renewed';
-    req.user.fds.push({
-      bankName: fd.bankName, accountId: fd.accountId,
-      principal: fd.maturityAmount, interestRate: fd.interestRate,
-      startDate: newStart, maturityDate: newEnd, maturityAmount: newAmt,
-      compounding: fd.compounding, autoRenew: fd.autoRenew,
-      creditToAccountId: fd.creditToAccountId, status: 'active',
-      notes: `Renewed from: ${fd.bankName}`,
-    });
-  } else {
-    fd.status = 'matured';
-    if (fd.creditToAccountId) {
-      const acct = req.user.bankAccounts.id(fd.creditToAccountId);
-      if (acct) { acct.balance += fd.maturityAmount; acct.updatedAt = today; }
+  if (b.bankName !== undefined) fd.bankName = V.str(b.bankName, { field: 'bankName', required: true, max: 120 });
+  if (b.accountId !== undefined) { const v = V.str(b.accountId, { field: 'accountId', max: 40 }); checkAccounts(req.user, v); fd.accountId = v; }
+  if (b.creditToAccountId !== undefined) { const v = V.str(b.creditToAccountId, { field: 'creditToAccountId', max: 40 }); checkAccounts(req.user, v); fd.creditToAccountId = v; }
+  if (b.principal !== undefined) { fd.principal = V.num(b.principal, { field: 'principal', min: 0.01, max: 1e11, required: true }); recompute = true; }
+  if (b.interestRate !== undefined) { fd.interestRate = V.num(b.interestRate, { field: 'interestRate', min: 0.01, max: 100, required: true }); recompute = true; }
+  if (b.startDate !== undefined) { fd.startDate = V.date(b.startDate, { field: 'startDate', required: true }); recompute = true; }
+  if (b.maturityDate !== undefined) { fd.maturityDate = V.date(b.maturityDate, { field: 'maturityDate', required: true }); recompute = true; }
+  if (b.compounding !== undefined) { fd.compounding = V.oneOf(b.compounding, COMPOUNDING, { field: 'compounding', required: true }); recompute = true; }
+  if (b.autoRenew !== undefined) fd.autoRenew = V.bool(b.autoRenew, { field: 'autoRenew' });
+  if (b.notes !== undefined) fd.notes = V.str(b.notes, { field: 'notes', max: 300 });
+  // Status can only be moved by closing (POST /:id/close) — except undoing an early closure.
+  if (b.status !== undefined) {
+    const s = V.oneOf(b.status, ['active', 'broken'], { field: 'status', required: true });
+    if (s !== fd.status) {
+      if (!(fd.status === 'broken' || fd.status === 'active')) throw V.bad('A matured or renewed FD cannot be reopened');
+      fd.status = s;
     }
   }
+  checkDates(fd.startDate, fd.maturityDate);
 
+  // A bank-quoted maturity value is preserved; only recompute when the user
+  // did not supply one (or explicitly cleared it).
+  if (b.maturityAmount !== undefined) {
+    const m = V.num(b.maturityAmount, { field: 'maturityAmount', min: 0, max: 1e12 });
+    if (m > 0) { fd.maturityAmount = round2(m); fd.manualMaturity = true; recompute = false; }
+    else { fd.manualMaturity = false; recompute = true; }
+  }
+  if (recompute && !fd.manualMaturity) {
+    fd.maturityAmount = calcMaturity(fd.principal, fd.interestRate, fd.startDate, fd.maturityDate, fd.compounding);
+  }
   await req.user.save();
-  res.json({ fds: serializeList(req.user.fds), bankAccounts: serializeList(req.user.bankAccounts) });
+  res.json(reply(req.user));
 }));
 
-router.delete('/:id', asyncHandler(async (req, res) => {
+// Mature (or renew) an FD. Before the maturity date this needs {early:true}
+// and pays the accrued value instead of the maturity value.
+router.post('/:id/mature', mutating(async (req, res) => {
+  V.objectId(req.params.id);
   const fd = req.user.fds.id(req.params.id);
   if (!fd) return res.status(404).json({ error: 'FD not found' });
+  const b = V.body(req);
+  const today = todayStr();
+  const early = fd.maturityDate > today;
+  if (early && b.early !== true) {
+    return res.status(409).json({ error: `This FD matures on ${fd.maturityDate}. Confirm to close it early (you will be credited the accrued value).`, code: 'NOT_MATURE_YET' });
+  }
+  closeFd(req.user, fd, today, { early });
+  await req.user.save(); // a concurrent second click hits a version conflict, retries, then sees status≠active → 409 (no double credit)
+  res.json(reply(req.user));
+}));
+
+router.delete('/:id', mutating(async (req, res) => {
+  V.objectId(req.params.id);
+  if (!req.user.fds.id(req.params.id)) return res.status(404).json({ error: 'FD not found' });
   req.user.fds.pull({ _id: req.params.id });
   await req.user.save();
-  res.json({ fds: serializeList(req.user.fds) });
+  res.json(reply(req.user));
 }));
 
 module.exports = router;

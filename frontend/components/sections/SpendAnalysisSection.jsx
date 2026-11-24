@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import SectionLoader from '@/components/SectionLoader';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -9,7 +9,7 @@ import {
 import { useFinance } from '@/lib/FinanceContext';
 import { Card, SectionTitle, StatCard, Tag, EmptyState, inputClass } from '@/components/ui';
 import { Amount } from "@/lib/PrivacyContext";
-import { fmtINR, monthKey, monthLabel, shiftMonthKey } from '@/lib/utils';
+import { fmtINR, monthKey, monthLabel, shiftMonthKey, cleanDescription } from '@/lib/utils';
 import { CHART_COLORS } from '@/lib/constants';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -42,13 +42,13 @@ export default function SpendAnalysisSection() {
 
   // ── Date range ──────────────────────────────────────────────────────
   const now = new Date();
-  const cutoff = useMemo(() => {
+  const cutoff = (() => {
     if (range === '1m') return shiftMonthKey(monthKey(now), -1) + '-01';
     if (range === '3m') return shiftMonthKey(monthKey(now), -3) + '-01';
     if (range === '6m') return shiftMonthKey(monthKey(now), -6) + '-01';
     if (range === '1y') return (now.getFullYear() - 1) + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-01';
     return '2000-01-01';
-  }, [range]);
+  })();
 
   const filtered = expenses.filter(e => e.date >= cutoff);
 
@@ -63,13 +63,11 @@ export default function SpendAnalysisSection() {
 
   // ── Monthly trend ────────────────────────────────────────────────────
   const monthCount = range === '1m' ? 1 : range === '3m' ? 3 : range === '6m' ? 6 : 12;
-  const monthlyTrend = useMemo(() => {
-    return Array.from({ length: monthCount }, (_, i) => {
-      const mk = shiftMonthKey(monthKey(now), -(monthCount - 1 - i));
-      const val = expenses.filter(e => e.date.slice(0, 7) === mk).reduce((s, e) => s + Number(e.amount || 0), 0);
-      return { name: monthLabel(mk).slice(0, 3), value: val };
-    });
-  }, [expenses, monthCount]);
+  const monthlyTrend = Array.from({ length: monthCount }, (_, i) => {
+    const mk = shiftMonthKey(monthKey(now), -(monthCount - 1 - i));
+    const val = expenses.filter(e => e.date.slice(0, 7) === mk).reduce((s, e) => s + Number(e.amount || 0), 0);
+    return { name: monthLabel(mk).slice(0, 3), value: val };
+  });
 
   // ── Day-of-week pattern ──────────────────────────────────────────────
   const byDow = [0, 0, 0, 0, 0, 0, 0];
@@ -92,7 +90,7 @@ export default function SpendAnalysisSection() {
   // ── Merchant/description frequency ──────────────────────────────────
   const merchantMap = {};
   filtered.filter(e => e.description).forEach(e => {
-    const key = e.description.trim();
+    const key = cleanDescription(e.description);
     if (!merchantMap[key]) merchantMap[key] = { count: 0, total: 0 };
     merchantMap[key].count++;
     merchantMap[key].total += Number(e.amount || 0);
@@ -222,7 +220,7 @@ export default function SpendAnalysisSection() {
                   {drillData.slice(0, 8).map(e => (
                     <tr key={e.id}>
                       <td className="mono text-inkMuted dark:text-gray-400 text-xs whitespace-nowrap">{e.date}</td>
-                      <td className="text-ink dark:text-gray-200 text-[12.5px]">{e.description || '—'}</td>
+                      <td className="text-ink dark:text-gray-200 text-[12.5px]">{cleanDescription(e.description) || '—'}</td>
                       <td className="text-inkMuted dark:text-gray-500 text-xs">{e.notes || '—'}</td>
                       <td className="num font-mono">{fmtINR(e.amount)}</td>
                     </tr>

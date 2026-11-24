@@ -49,7 +49,7 @@ export default function OverviewPage() {
   const totalFD   = activeFDs.reduce((s, f) => s + Number(f.principal || 0), 0);
   const bankTotal = (state.bankAccounts || []).reduce((s, a) => s + Number(a.balance || 0), 0);
 
-  const dueSoon = state.insurance.filter(p => { const s = dueStatus(p.dueDate); return s.cls === 'soon' || s.cls === 'late'; });
+  const dueSoon = state.insurance.filter(p => { const s = dueStatus(p.dueDate, p.frequency); return s.cls === 'soon' || s.cls === 'late'; });
   const firstName = (user?.name || '').split(' ')[0];
 
   return (
@@ -153,7 +153,7 @@ export default function OverviewPage() {
           <SectionTitle>Renewals due soon</SectionTitle>
           <Card className="mb-4 p-0 overflow-hidden">
             {dueSoon.map(p => {
-              const s = dueStatus(p.dueDate);
+              const s = dueStatus(p.dueDate, p.frequency);
               return (
                 <div key={p.id} className="flex items-center justify-between px-4 py-3 border-b border-line dark:border-gray-700 last:border-b-0">
                   <div>
