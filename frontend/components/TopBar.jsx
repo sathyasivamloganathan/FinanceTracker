@@ -3,6 +3,7 @@
 import { usePrivacy } from '@/lib/PrivacyContext';
 import { useAuth } from '@/lib/AuthContext';
 import { useFinance } from '@/lib/FinanceContext';
+import { applyTheme } from '@/lib/theme';
 
 export default function TopBar() {
   const { hidden, toggle } = usePrivacy();
@@ -12,9 +13,9 @@ export default function TopBar() {
 
   async function toggleDark() {
     const next = !darkMode;
-    if (next) document.documentElement.classList.add('dark');
-    else      document.documentElement.classList.remove('dark');
-    try { await updateSettings({ darkModeDefault: next }); } catch {}
+    applyTheme(next);
+    const ok = await updateSettings({ darkModeDefault: next });
+    if (!ok) applyTheme(darkMode); // saving failed → put the old theme back
   }
 
   return (

@@ -20,14 +20,17 @@ export default function EditableNumber({ value, onCommit, className, step = '0.0
     if (!focused.current) setLocal(String(value ?? ''));
   }, [value]);
 
-  function commit() {
+  async function commit() {
     focused.current = false;
-    const num = Number(local);
-    if (!Number.isNaN(num) && num !== Number(value)) {
-      onCommit(num);
-    } else {
+    // A blank field must never be committed as 0 (that silently wiped values) — revert instead.
+    if (local.trim() === '' || !Number.isFinite(Number(local))) {
       setLocal(String(value ?? ''));
+      return;
     }
+    const num = Number(local);
+    if (num === Number(value)) return;
+    const result = await onCommit(num);
+    if (result === false) setLocal(String(value ?? '')); // the save failed → show the real value again
   }
 
   if (maskable && hidden) {
