@@ -5,7 +5,7 @@ import SectionLoader from '@/components/SectionLoader';
 import { useFinance } from '@/lib/FinanceContext';
 import { Card, Field, inputClass, Btn, EmptyState } from '@/components/ui';
 import { Amount } from '@/lib/PrivacyContext';
-import { computeCategoryTotals, netWorth, fmtINR, fmtPct } from '@/lib/utils';
+import { allocationTotals, fmtINR, fmtPct } from '@/lib/utils';
 import { ASSET_TYPE_TO_CATEGORY, HOLDING_TYPES } from '@/lib/constants';
 
 export default function AdvisorSection() {
@@ -35,10 +35,11 @@ export default function AdvisorSection() {
     const avgNum = Number(avg) || 0;
     const gainPct = avgNum ? ((curNum - avgNum) / avgNum) * 100 : 0;
 
-    const totals = computeCategoryTotals(state);
-    const nw = netWorth(state);
-    const actualPct = nw ? ((totals[category] || 0) / nw) * 100 : 0;
-    const targetPct = Number(state.targets[category] || 0);
+    // Percentages of GROSS assets (what the targets are expressed in), with
+    // bank accounts / FDs / cash grouped into the "Cash" bucket.
+    const { buckets, gross } = allocationTotals(state);
+    const actualPct = gross ? ((buckets[category] || 0) / gross) * 100 : 0;
+    const targetPct = Number((state.targets || {})[category] || 0);
     const drift = actualPct - targetPct;
 
     const rows = [];
@@ -73,8 +74,10 @@ export default function AdvisorSection() {
 
     const total = rows.reduce((s, f) => s + f.score, 0);
     let verdict = 'HOLD';
-    if (total >= 3) verdict = 'BUY';
-    else if (total <= -3) verdict = 'SELL';
+    // Possible totals run from -3 to +2, so the thresholds are ±2 (the old +3
+    // for BUY could never be reached).
+    if (total >= 2) verdict = 'BUY';
+    else if (total <= -2) verdict = 'SELL';
 
     setResult({ rows, total, verdict, name: name.trim() || 'This instrument' });
   }
@@ -88,6 +91,9 @@ export default function AdvisorSection() {
   return (
     <>
       <div className="border-l-[3px] border-accent bg-accentBg px-4 py-3 rounded-r-lg text-[12.5px] text-[#1E3A8A] mb-6 leading-relaxed">
+        <b>Not investment advice.</b> This is a simple rule-based checklist built only from your own numbers; it is not a recommendation
+        from a SEBI-registered adviser. Do your own research or consult a licensed adviser before buying or selling.
+        <br />
         Works on anything, not just what you already hold — type a name and prices in yourself (or pick an existing holding to
         prefill). It weighs only two things: whether this category is over/under-weight against your allocation targets, and how
         the price compares to what you paid, if anything. No valuation/trend/fundamentals guessing — ask in chat if you want an

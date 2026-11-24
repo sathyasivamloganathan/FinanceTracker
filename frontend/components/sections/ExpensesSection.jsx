@@ -8,7 +8,7 @@ import { Amount } from '@/lib/PrivacyContext';
 import { Card, SectionTitle, StatCard, Tag, EmptyState, Btn, IconBtn, Field, inputClass } from '@/components/ui';
 import Modal, { ModalActions } from '@/components/Modal';
 import { IconPlus, IconTrash, IconEdit, IconDownload } from '@/components/Icons';
-import { fmtINR, todayStr, monthKey, monthLabel, shiftMonthKey } from '@/lib/utils';
+import { fmtINR, todayStr, monthKey, monthLabel, shiftMonthKey, cleanDescription } from '@/lib/utils';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, API_BASE, CHART_COLORS } from '@/lib/constants';
 
 function useUndo() {
@@ -38,7 +38,7 @@ const TYPE_TAG_TONE = {
 };
 
 export default function ExpensesSection() {
-  const { state, ready, addExpense, updateExpense, deleteExpense } = useFinance();
+  const { state, ready, addExpense, updateExpense, deleteExpense, notify } = useFinance();
   const [selectedMonth, setSelectedMonth] = useState(monthKey(new Date()));
   const [perspective, setPerspective] = useState('category');
   const [modalOpen, setModalOpen] = useState(false);
@@ -72,7 +72,7 @@ export default function ExpensesSection() {
       .filter(
         (e) =>
           !search ||
-          e.description?.toLowerCase().includes(search.toLowerCase()) ||
+          cleanDescription(e.description).toLowerCase().includes(search.toLowerCase()) ||
           e.category.toLowerCase().includes(search.toLowerCase()) ||
           (e.notes || "").toLowerCase().includes(search.toLowerCase()),
       )
@@ -137,31 +137,45 @@ export default function ExpensesSection() {
   }
   function openEdit(e) {
     setEditingId(e.id);
-    setForm({ date: e.date, category: e.category, description: e.description || '', amount: String(e.amount), accountId: e.accountId || '', expenseType: e.expenseType || 'expense', notes: e.notes || '' });
+    setForm({ date: e.date, category: e.category, description: cleanDescription(e.description), amount: String(e.amount), accountId: e.accountId || '', expenseType: e.expenseType || 'expense', notes: e.notes || '' });
     setModalOpen(true);
   }
   function openClone(e) {
     setEditingId(null);
-    setForm({ date: todayStr(), category: e.category, description: e.description || '', amount: String(e.amount), accountId: e.accountId || '', expenseType: e.expenseType || 'expense', notes: e.notes || '' });
+    const t = e.expenseType === 'income' ? 'income' : 'expense'; // transfers / ATM rows clone as plain expenses
+    setForm({ date: todayStr(), category: e.category, description: e.description || '', amount: String(e.amount), accountId: e.accountId || '', expenseType: t, notes: e.notes || '' });
     setModalOpen(true);
   }
 
-  function submit() {
-    const amount = Number(form.amount) || 0;
-    if (amount <= 0) return alert('Enter an amount');
+  async function submit() {
+    const amount = Number(form.amount);
+    if (!(amount > 0)) return notify('Enter an amount greater than zero');
     const date = form.date || todayStr();
-    const payload = { date, category: form.category, description: form.description.trim(), amount, accountId: form.accountId, expenseType: form.expenseType, notes: form.notes.trim() };
-    if (editingId) updateExpense(editingId, payload);
-    else addExpense(payload);
-    setSelectedMonth(date.slice(0, 7));
-    setModalOpen(false);
+    let payload = { date, category: form.category, description: form.description.trim(), amount, accountId: form.accountId, expenseType: form.expenseType, notes: form.notes.trim() };
+    const original = editingId ? (state.expenses || []).find((x) => x.id === editingId) : null;
+    if (original && (original.expenseType === 'transfer' || original.expenseType === 'atm_withdrawal')) {
+      // Transfers / ATM withdrawals keep their accounts and type; only text, date and amount are editable here.
+      payload = { date, category: form.category, description: form.description.trim(), amount, notes: form.notes.trim() };
+    }
+    const ok = editingId ? await updateExpense(editingId, payload) : await addExpense(payload);
+    if (ok) {
+      setSelectedMonth(date.slice(0, 7));
+      setModalOpen(false);
+    }
   }
 
-  function handleDelete(e) {
+  // Deleting refunds the bank balance on the server, so Undo (re-adding the
+  // identical entry) deducts it again — net effect zero, as it should be.
+  async function handleDelete(e) {
     const snapshot = { ...e };
-    deleteExpense(e.id);
-    showToast(`Deleted "${e.description || e.category}"`, () => {
-      addExpense({ date: snapshot.date, category: snapshot.category, description: snapshot.description, amount: snapshot.amount, accountId: snapshot.accountId, expenseType: snapshot.expenseType || 'expense', notes: snapshot.notes || '' });
+    const ok = await deleteExpense(e.id);
+    if (!ok) return;
+    showToast(`Deleted "${cleanDescription(e.description) || e.category}"`, () => {
+      addExpense({
+        date: snapshot.date, category: snapshot.category, description: snapshot.description, amount: snapshot.amount,
+        accountId: snapshot.accountId, expenseType: snapshot.expenseType || 'expense',
+        transferToAccountId: snapshot.transferToAccountId || '', notes: snapshot.notes || '',
+      });
     });
   }
 
@@ -519,7 +533,7 @@ export default function ExpensesSection() {
                       <Tag>{e.category}</Tag>
                     </td>
                     <td className="text-ink dark:text-gray-200 max-w-[140px] text-[12.5px]">
-                      {e.description || (
+                      {cleanDescription(e.description) || (
                         <span className="text-inkMuted">—</span>
                       )}
                     </td>

@@ -9,17 +9,19 @@ import { Amount } from '@/lib/PrivacyContext';
 import Modal, { ModalActions } from '@/components/Modal';
 import EditableNumber from '@/components/EditableNumber';
 import { IconPlus } from '@/components/Icons';
-import { computeCategoryTotals, netWorth, categoryColor, fmtINR } from '@/lib/utils';
+import { computeCategoryTotals, allocationTotals, categoryColor, fmtINR } from '@/lib/utils';
 
 export default function AllocationSection() {
-  const { state, ready, updateTarget, addTargetCategory } = useFinance();
+  const { state, ready, updateTarget, addTargetCategory, notify } = useFinance();
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ name: '', target: '' });
 
   if (!ready || !state) return <SectionLoader />;
 
-  const totals = computeCategoryTotals(state);
-  const nw = netWorth(state);
+  // Compare like with like: percentages of GROSS assets, with bank accounts,
+  // FDs and cash all counted in the "Cash" bucket (that is what targets mean).
+  const { buckets: totals, gross: nw } = allocationTotals(state);
+  const rawTotals = computeCategoryTotals(state);
   const cats = [...new Set([...Object.keys(totals), ...Object.keys(state.targets)])];
   const targetSum = Object.values(state.targets).reduce((a, b) => a + (Number(b) || 0), 0);
 
@@ -28,13 +30,17 @@ export default function AllocationSection() {
     Target: Number(state.targets[cat] || 0),
     Actual: nw ? ((totals[cat] || 0) / nw) * 100 : 0,
   }));
-  const pieData = Object.entries(totals).map(([name, value]) => ({ name, value }));
+  const pieData = Object.entries(rawTotals).filter(([, value]) => value > 0).map(([name, value]) => ({ name, value }));
 
-  function submit() {
-    if (!form.name.trim()) return alert('Enter a category name');
-    addTargetCategory(form.name.trim(), form.target);
-    setForm({ name: '', target: '' });
-    setModalOpen(false);
+  async function submit() {
+    if (!form.name.trim()) return notify('Enter a category name');
+    const t = Number(form.target);
+    if (form.target === '' || !(t >= 0 && t <= 100)) return notify('Target must be a number from 0 to 100');
+    const ok = await addTargetCategory(form.name.trim(), t);
+    if (ok) {
+      setForm({ name: '', target: '' });
+      setModalOpen(false);
+    }
   }
 
   return (

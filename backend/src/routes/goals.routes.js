@@ -1,86 +1,68 @@
 const express = require('express');
-const asyncHandler = require('../utils/asyncHandler');
+const { mutating } = require('../utils/asyncHandler');
 const { serializeList } = require('../utils/serialize');
-const { holdingCurrentValue } = require('../utils/financeMath');
+const { todayStr } = require('../utils/dates');
+const { computeNetWorth } = require('../utils/financeMath');
+const { round2 } = require('../utils/money');
+const V = require('../utils/validate');
 
 const router = express.Router();
+const reply = (u) => ({ goals: serializeList(u.goals) });
 
-function currentNetWorth(user) {
-  const equity = user.holdings.reduce((s, h) => s + holdingCurrentValue(h), 0);
-  const otherAssets = user.otherAssets.reduce((s, a) => s + (Number(a.amount) || 0), 0);
-  const liabilities = user.liabilities.reduce((s, l) => s + (Number(l.amount) || 0), 0);
-  return equity + otherAssets - liabilities;
-}
+router.post('/', mutating(async (req, res) => {
+  const b = V.body(req);
+  req.user.goals.push({
+    name: V.str(b.name, { field: 'name', required: true, max: 120 }),
+    targetAmount: round2(V.num(b.targetAmount, { field: 'targetAmount', min: 0.01, max: 1e13, required: true })),
+    targetDate: V.date(b.targetDate, { field: 'targetDate' }),
+    notes: V.str(b.notes, { field: 'notes', max: 300 }),
+  });
+  await req.user.save();
+  res.status(201).json(reply(req.user));
+}));
 
-router.post(
-  '/',
-  asyncHandler(async (req, res) => {
-    const { name, targetAmount, targetDate, notes } = req.body || {};
-    if (!name || !(Number(targetAmount) > 0)) return res.status(400).json({ error: 'name and a positive targetAmount are required' });
-    req.user.goals.push({
-      name: String(name).trim(),
-      targetAmount: Number(targetAmount),
-      targetDate: targetDate || '',
-      notes: notes ? String(notes).trim() : '',
-    });
-    await req.user.save();
-    res.status(201).json({ goals: serializeList(req.user.goals) });
-  })
-);
+router.patch('/:id', mutating(async (req, res) => {
+  V.objectId(req.params.id);
+  const g = req.user.goals.id(req.params.id);
+  if (!g) return res.status(404).json({ error: 'Goal not found' });
+  const b = V.body(req);
+  if (b.name !== undefined) g.name = V.str(b.name, { field: 'name', required: true, max: 120 });
+  if (b.targetAmount !== undefined) g.targetAmount = round2(V.num(b.targetAmount, { field: 'targetAmount', min: 0.01, max: 1e13, required: true }));
+  if (b.targetDate !== undefined) g.targetDate = V.date(b.targetDate, { field: 'targetDate' });
+  if (b.notes !== undefined) g.notes = V.str(b.notes, { field: 'notes', max: 300 });
+  await req.user.save();
+  res.json(reply(req.user));
+}));
 
-router.patch(
-  '/:id',
-  asyncHandler(async (req, res) => {
-    const goal = req.user.goals.id(req.params.id);
-    if (!goal) return res.status(404).json({ error: 'Goal not found' });
-    const { name, targetAmount, targetDate, notes } = req.body || {};
-    if (name) goal.name = String(name).trim();
-    if (targetAmount !== undefined) goal.targetAmount = Number(targetAmount) || goal.targetAmount;
-    if (targetDate !== undefined) goal.targetDate = targetDate;
-    if (notes !== undefined) goal.notes = String(notes).trim();
-    await req.user.save();
-    res.json({ goals: serializeList(req.user.goals) });
-  })
-);
+// Records today's date and the net worth (same definition as snapshots and
+// the dashboard: holdings + other assets + accrued FDs + bank − liabilities).
+router.post('/:id/achieve', mutating(async (req, res) => {
+  V.objectId(req.params.id);
+  const g = req.user.goals.id(req.params.id);
+  if (!g) return res.status(404).json({ error: 'Goal not found' });
+  const today = todayStr();
+  g.achieved = true;
+  g.achievedDate = today;
+  g.achievedNetWorth = computeNetWorth(req.user, today).netWorth;
+  await req.user.save();
+  res.json(reply(req.user));
+}));
 
-// Mark a goal achieved — records today's date and a snapshot of net worth at
-// the moment it was marked, so the "completed" record stays meaningful even
-// if net worth later moves (e.g. dips below target again).
-router.post(
-  '/:id/achieve',
-  asyncHandler(async (req, res) => {
-    const goal = req.user.goals.id(req.params.id);
-    if (!goal) return res.status(404).json({ error: 'Goal not found' });
-    goal.achieved = true;
-    goal.achievedDate = new Date().toISOString().slice(0, 10);
-    goal.achievedNetWorth = currentNetWorth(req.user);
-    await req.user.save();
-    res.json({ goals: serializeList(req.user.goals) });
-  })
-);
+router.post('/:id/reopen', mutating(async (req, res) => {
+  V.objectId(req.params.id);
+  const g = req.user.goals.id(req.params.id);
+  if (!g) return res.status(404).json({ error: 'Goal not found' });
+  g.achieved = false; g.achievedDate = ''; g.achievedNetWorth = null;
+  await req.user.save();
+  res.json(reply(req.user));
+}));
 
-// Move a goal back to active (undo an accidental "mark achieved", or resume
-// tracking toward a bigger version of the same goal).
-router.post(
-  '/:id/reopen',
-  asyncHandler(async (req, res) => {
-    const goal = req.user.goals.id(req.params.id);
-    if (!goal) return res.status(404).json({ error: 'Goal not found' });
-    goal.achieved = false;
-    goal.achievedDate = '';
-    goal.achievedNetWorth = null;
-    await req.user.save();
-    res.json({ goals: serializeList(req.user.goals) });
-  })
-);
-
-router.delete(
-  '/:id',
-  asyncHandler(async (req, res) => {
-    req.user.goals.pull({ _id: req.params.id });
-    await req.user.save();
-    res.json({ goals: serializeList(req.user.goals) });
-  })
-);
+router.delete('/:id', mutating(async (req, res) => {
+  V.objectId(req.params.id);
+  if (!req.user.goals.id(req.params.id)) return res.status(404).json({ error: 'Goal not found' });
+  req.user.goals.pull({ _id: req.params.id });
+  await req.user.save();
+  res.json(reply(req.user));
+}));
 
 module.exports = router;

@@ -6,7 +6,7 @@ import { useFinance } from '@/lib/FinanceContext';
 import { Card, SectionTitle, StatCard, Btn, IconBtn, Field, inputClass, EmptyState, Tag } from '@/components/ui';
 import Modal, { ModalActions } from '@/components/Modal';
 import { IconPlus, IconTrash, IconEdit, IconRefresh } from '@/components/Icons';
-import { fmtINR, todayStr } from '@/lib/utils';
+import { fmtINR, todayStr, nextRecurringDate } from '@/lib/utils';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, RECURRING_FREQUENCIES } from '@/lib/constants';
 
 const blank = { name: '', amount: '', category: 'Groceries', accountId: '', frequency: 'monthly', type: 'expense', startDate: todayStr(), endDate: '', notes: '' };
@@ -15,20 +15,8 @@ function freqLabel(f) {
   return RECURRING_FREQUENCIES.find(r => r.value === f)?.label || f;
 }
 
-function nextDue(startDate, frequency, lastGenerated) {
-  const base = lastGenerated || startDate;
-  const d = new Date(base);
-  if (frequency === 'daily') d.setDate(d.getDate() + 1);
-  else if (frequency === 'weekly') d.setDate(d.getDate() + 7);
-  else if (frequency === 'fortnightly') d.setDate(d.getDate() + 14);
-  else if (frequency === 'monthly') d.setMonth(d.getMonth() + 1);
-  else if (frequency === 'quarterly') d.setMonth(d.getMonth() + 3);
-  else if (frequency === 'yearly') d.setFullYear(d.getFullYear() + 1);
-  return d.toISOString().slice(0, 10);
-}
-
 export default function RecurringSection() {
-  const { state, ready, addRecurring, updateRecurring, deleteRecurring, generateRecurring } = useFinance();
+  const { state, ready, addRecurring, updateRecurring, deleteRecurring, generateRecurring, notify } = useFinance();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [generating, setGenerating] = useState(false);
@@ -56,23 +44,26 @@ export default function RecurringSection() {
     setModalOpen(true);
   }
 
-  function submit() {
-    if (!form.name.trim()) return alert('Enter a name');
-    if (!(Number(form.amount) > 0)) return alert('Enter a valid amount');
+  async function submit() {
+    if (!form.name.trim()) return notify('Enter a name');
+    if (!(Number(form.amount) > 0)) return notify('Enter a valid amount');
+    if (!form.startDate) return notify('Choose a start date');
+    if (form.endDate && form.endDate < form.startDate) return notify('End date cannot be before the start date');
     const payload = { name: form.name.trim(), amount: Number(form.amount), category: form.category, accountId: form.accountId, frequency: form.frequency, type: form.type, startDate: form.startDate, endDate: form.endDate, notes: form.notes.trim() };
-    if (editingId) updateRecurring(editingId, payload);
-    else addRecurring(payload);
-    setModalOpen(false);
+    const ok = editingId ? await updateRecurring(editingId, payload) : await addRecurring(payload);
+    if (ok) setModalOpen(false);
   }
 
   async function handleGenerate() {
     setGenerating(true);
     setGenerated(null);
     try {
-      await generateRecurring();
-      setGenerated('Done — any due entries have been added to your spends.');
-    } catch (e) { setGenerated('Error generating entries.'); }
-    finally { setGenerating(false); }
+      const r = await generateRecurring();
+      if (r) {
+        const n = r.generated?.length || 0;
+        setGenerated(n ? `Done — ${n} entr${n === 1 ? 'y' : 'ies'} added to your spends.` : 'Nothing is due right now.');
+      }
+    } finally { setGenerating(false); }
   }
 
   const allCategories = form.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
@@ -102,7 +93,7 @@ export default function RecurringSection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {recurring.map(r => {
             const acct = bankAccounts.find(a => a.id === r.accountId);
-            const due = nextDue(r.startDate, r.frequency, r.lastGeneratedDate);
+            const due = nextRecurringDate(r);
             const isIncome = r.type === 'income';
             return (
               <Card key={r.id} className={`dark:bg-gray-800 dark:border-gray-700 ${!r.active ? 'opacity-50' : ''}`}>
@@ -132,7 +123,7 @@ export default function RecurringSection() {
                   </span>
                   <div className="text-right">
                     <div className="text-[10px] text-inkMuted dark:text-gray-500">Next due</div>
-                    <div className="text-[12px] font-mono text-ink dark:text-gray-300">{r.active ? due : '—'}</div>
+                    <div className="text-[12px] font-mono text-ink dark:text-gray-300">{r.active ? (due || "—") : '—'}</div>
                   </div>
                 </div>
                 {r.endDate && <div className="text-[11px] text-inkMuted dark:text-gray-500 mt-1">Ends {r.endDate}</div>}
