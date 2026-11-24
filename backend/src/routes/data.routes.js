@@ -1,6 +1,8 @@
 const express = require('express');
 const asyncHandler = require('../utils/asyncHandler');
+const { mutating } = require('../utils/asyncHandler');
 const { serializeList } = require('../utils/serialize');
+const V = require('../utils/validate');
 
 const router = express.Router();
 
@@ -17,9 +19,9 @@ router.get('/', asyncHandler(async (req, res) => {
     liabilities: serializeList(u.liabilities),
     goals: serializeList(u.goals),
     netWorthSnapshots: serializeList(u.netWorthSnapshots),
-    recurring: serializeList(u.recurring || []),
-    budgets: u.budgets instanceof Map ? Object.fromEntries(u.budgets) : (u.budgets || {}),
-    targets: Object.fromEntries(u.targets),
+    recurring: serializeList(u.recurring),
+    budgets: u.budgets || {},
+    targets: Object.fromEntries(u.targets || []),
     privacyModeDefault: u.privacyModeDefault,
     darkModeDefault: u.darkModeDefault,
     financialProfile: u.financialProfile,
@@ -27,10 +29,12 @@ router.get('/', asyncHandler(async (req, res) => {
   });
 }));
 
-router.patch('/settings', asyncHandler(async (req, res) => {
-  const { privacyModeDefault, darkModeDefault } = req.body || {};
-  if (typeof privacyModeDefault === 'boolean') req.user.privacyModeDefault = privacyModeDefault;
-  if (typeof darkModeDefault === 'boolean') req.user.darkModeDefault = darkModeDefault;
+router.patch('/settings', mutating(async (req, res) => {
+  const b = V.body(req);
+  const p = V.bool(b.privacyModeDefault, { field: 'privacyModeDefault' });
+  const d = V.bool(b.darkModeDefault, { field: 'darkModeDefault' });
+  if (p !== undefined) req.user.privacyModeDefault = p;
+  if (d !== undefined) req.user.darkModeDefault = d;
   await req.user.save();
   res.json({ privacyModeDefault: req.user.privacyModeDefault, darkModeDefault: req.user.darkModeDefault });
 }));

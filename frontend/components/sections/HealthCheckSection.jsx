@@ -31,7 +31,7 @@ function riskBadge(level) {
 }
 
 export default function HealthCheckSection() {
-  const { state, ready, updateFinancialProfile } = useFinance();
+  const { state, ready, updateFinancialProfile, notify } = useFinance();
   const [dob, setDob] = useState('');
   const [income, setIncome] = useState('');
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -57,7 +57,7 @@ export default function HealthCheckSection() {
   const savingsRatePct = monthlyIncome ? Math.max(0, ((monthlyIncome - expense) / monthlyIncome) * 100) : null;
   const years = savingsRatePct !== null ? yearsToFI(savingsRatePct) : null;
   const annualExpense = expense * 12;
-  const idealTermCover = recommendedTermCover(annualExpense, nw);
+  const idealTermCover = recommendedTermCover(monthlyIncome * 12, liabilities, assets);
   const age = ageFromDOB(dob);
   const retirementYears = yearsToRetirement(dob);
 
@@ -79,8 +79,10 @@ export default function HealthCheckSection() {
     return 'risk';
   }
 
-  function saveProfile() {
-    updateFinancialProfile({ dateOfBirth: dob || '', monthlyIncome: income === '' ? '' : Number(income) });
+  async function saveProfile() {
+    if (income !== '' && !(Number(income) >= 0)) return notify('Enter a valid monthly income');
+    const ok = await updateFinancialProfile({ dateOfBirth: dob || '', monthlyIncome: income === '' ? '' : Number(income) });
+    if (ok) notify('Profile saved', 'info');
   }
 
   return (
@@ -94,10 +96,10 @@ export default function HealthCheckSection() {
         <div className="font-display font-semibold text-[15px] mb-3">Financial profile</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Date of birth (optional)">
-            <input type="date" className={inputClass} value={dob} onChange={(e) => setDob(e.target.value)} />
+            <input type="date" max={new Date().toISOString().slice(0, 10)} className={inputClass} value={dob} onChange={(e) => setDob(e.target.value)} />
           </Field>
           <Field label="Monthly income (optional)">
-            <input type="number" className={inputClass} placeholder="e.g. 80000" value={income} onChange={(e) => setIncome(e.target.value)} />
+            <input type="number" min="0" max="10000000000" className={inputClass} placeholder="e.g. 80000" value={income} onChange={(e) => setIncome(e.target.value)} />
           </Field>
         </div>
         {age !== null && (
@@ -152,9 +154,9 @@ export default function HealthCheckSection() {
       <Card className="mb-5">
         <div className="font-mono text-[10.5px] uppercase tracking-wide text-inkMuted mb-1">Term life — rule of thumb</div>
         <div className="font-display font-semibold text-[22px]">
-          <Amount>{fmtINR(idealTermCover)}</Amount>
+          {idealTermCover === null ? <span className="text-[13px] text-inkMuted font-normal">Add your monthly income above to estimate this.</span> : <Amount>{fmtINR(idealTermCover)}</Amount>}
         </div>
-        <div className="text-inkMuted text-xs mt-1">Formula: 25 × annual expenses − current net worth</div>
+        <div className="text-inkMuted text-xs mt-1">Rule of thumb: 10 × annual income + loans − assets you already hold</div>
         <div className="mt-4 pt-4 border-t border-line">
           <div className="font-mono text-[10.5px] uppercase tracking-wide text-inkMuted mb-1">Health cover — general guidance</div>
           <div className="text-[13px]">Minimum ₹5L, ideally ₹10L+ per person, more in metro cities or with dependents.</div>

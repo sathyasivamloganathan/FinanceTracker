@@ -38,7 +38,7 @@ function BudgetBar({ category, budgeted, spent, onEdit }) {
 }
 
 export default function BudgetSection() {
-  const { state, ready, saveBudget } = useFinance();
+  const { state, ready, saveBudget, notify } = useFinance();
 
   const [selectedMonth, setSelectedMonth] = useState(monthKey(new Date()));
   const [editingCat, setEditingCat] = useState(null);
@@ -90,7 +90,7 @@ export default function BudgetSection() {
 
   async function copyFromLastMonth() {
     const lastBudget = budgets[shiftMonthKey(selectedMonth, -1)] || {};
-    if (!Object.keys(lastBudget).length) return alert('No budget found for last month.');
+    if (!Object.keys(lastBudget).length) return notify('No budget found for last month.');
     await saveBudget(selectedMonth, { ...lastBudget });
     setCopyOpen(false);
   }
@@ -99,16 +99,17 @@ export default function BudgetSection() {
     // Compute 3-month average spend per category
     const months = [1, 2, 3].map(i => shiftMonthKey(selectedMonth, -i));
     const avgBycat = {};
+    let monthsWithData = 0; // divide by months that actually have spending, not always by 3
     months.forEach(mk => {
-      (state.expenses || [])
-        .filter(e => e.date.slice(0, 7) === mk && (e.expenseType === 'expense' || !e.expenseType))
-        .forEach(e => { avgBycat[e.category] = (avgBycat[e.category] || 0) + Number(e.amount || 0); });
+      const rows = (state.expenses || []).filter(e => e.date.slice(0, 7) === mk && (e.expenseType === 'expense' || !e.expenseType));
+      if (rows.length) monthsWithData += 1;
+      rows.forEach(e => { avgBycat[e.category] = (avgBycat[e.category] || 0) + Number(e.amount || 0); });
     });
     const updated = {};
     Object.entries(avgBycat).forEach(([cat, total]) => {
-      updated[cat] = Math.ceil((total / 3) / 100) * 100; // round up to nearest 100
+      updated[cat] = Math.ceil((total / Math.max(1, monthsWithData)) / 100) * 100; // round up to nearest 100
     });
-    if (!Object.keys(updated).length) return alert('Not enough expense history to auto-fill.');
+    if (!Object.keys(updated).length) return notify('Not enough expense history to auto-fill.');
     await saveBudget(selectedMonth, updated);
   }
 

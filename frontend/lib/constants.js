@@ -53,13 +53,14 @@ export const RECURRING_FREQUENCIES = [
 
 export const HOLDING_TYPES = ['Stock', 'Mutual Fund', 'Gold'];
 export const ASSET_TYPE_TO_CATEGORY = { Stock: 'Stocks', 'Mutual Fund': 'Mutual Funds', Gold: 'Gold' };
-export const DEFAULT_ASSET_CATEGORIES = ['Cash', 'Fixed Deposit', 'Real Estate', 'Other'];
+// Fixed deposits have their own tab (Wealth → Fixed Deposits); listing them here too would double-count them.
+export const DEFAULT_ASSET_CATEGORIES = ['Cash', 'Real Estate', 'Other'];
 export const INSURANCE_TYPES = ['Life', 'Health', 'Vehicle', 'Home', 'Other'];
 export const PREMIUM_FREQUENCIES = ['Yearly', 'Half-yearly', 'Quarterly', 'Monthly', 'One-time'];
 export const LIABILITY_TYPES = ['Home Loan', 'Personal Loan', 'Car Loan', 'Credit Card', 'Education Loan', 'Other'];
 export const BANK_ACCOUNT_TYPES = ['Savings', 'Current', 'Salary', 'NRE', 'NRO', 'Other'];
 export const FD_COMPOUNDING = ['Monthly', 'Quarterly', 'Half-yearly', 'Yearly', 'On maturity'];
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+export { API_BASE } from './api';
 
 export const CHART_COLORS = [
   '#2563EB', '#059669', '#C2410C', '#7C3AED',
