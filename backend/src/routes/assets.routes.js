@@ -1,109 +1,106 @@
 const express = require('express');
-const asyncHandler = require('../utils/asyncHandler');
+const { mutating } = require('../utils/asyncHandler');
 const { serializeList } = require('../utils/serialize');
+const { todayStr } = require('../utils/dates');
+const { round2 } = require('../utils/money');
+const V = require('../utils/validate');
 
 const router = express.Router();
+const reply = (u) => ({ otherAssets: serializeList(u.otherAssets) });
 
+// The asset's current amount is always the snapshot with the latest VALID date.
 function recomputeAmountFromHistory(asset) {
-  if (!asset.history.length) return;
-  const latest = [...asset.history].sort((a, b) => a.date.localeCompare(b.date)).slice(-1)[0];
+  const valid = asset.history.filter((h) => V.isValidDateStr(h.date));
+  if (!valid.length) return;
+  const latest = valid.reduce((a, b) => (b.date >= a.date ? b : a));
   asset.amount = latest.amount;
 }
 
-router.post(
-  '/',
-  asyncHandler(async (req, res) => {
-    const { category, name, amount } = req.body || {};
-    if (!category || !name) return res.status(400).json({ error: 'category and name are required' });
-    const today = new Date().toISOString().slice(0, 10);
-    const amountNum = Number(amount) || 0;
-    req.user.otherAssets.push({
-      category: String(category).trim(),
-      name: String(name).trim(),
-      amount: amountNum,
-      updatedAt: today,
-      history: [{ date: today, amount: amountNum }],
-    });
-    await req.user.save();
-    res.status(201).json({ otherAssets: serializeList(req.user.otherAssets) });
-  })
-);
+function snapshotDate(v) {
+  const d = V.date(v, { field: 'date', required: true });
+  if (d > todayStr()) throw V.bad('Snapshot date cannot be in the future');
+  return d;
+}
 
-// Quick single-value update (e.g. inline edit in the table) — this ALSO
-// records a snapshot for today, so your monthly history builds itself even
-// if you never open the dedicated history view.
-router.patch(
-  '/:id',
-  asyncHandler(async (req, res) => {
-    const asset = req.user.otherAssets.id(req.params.id);
-    if (!asset) return res.status(404).json({ error: 'Asset not found' });
-    const today = new Date().toISOString().slice(0, 10);
-    const amountNum = Number(req.body.amount) || 0;
-    asset.amount = amountNum;
-    asset.updatedAt = today;
-    const existingToday = asset.history.find((h) => h.date === today);
-    if (existingToday) existingToday.amount = amountNum;
-    else asset.history.push({ date: today, amount: amountNum });
-    await req.user.save();
-    res.json({ otherAssets: serializeList(req.user.otherAssets) });
-  })
-);
+router.post('/', mutating(async (req, res) => {
+  const b = V.body(req);
+  const today = todayStr();
+  const amount = round2(V.num(b.amount, { field: 'amount', min: 0, max: 1e12 }) ?? 0);
+  req.user.otherAssets.push({
+    category: V.str(b.category, { field: 'category', required: true, max: 60 }),
+    name: V.str(b.name, { field: 'name', required: true, max: 120 }),
+    amount, updatedAt: today, history: [{ date: today, amount }],
+  });
+  await req.user.save();
+  res.status(201).json(reply(req.user));
+}));
 
-router.delete(
-  '/:id',
-  asyncHandler(async (req, res) => {
-    req.user.otherAssets.pull({ _id: req.params.id });
-    await req.user.save();
-    res.json({ otherAssets: serializeList(req.user.otherAssets) });
-  })
-);
-
-// ---- Monthly history (snapshots) ----
-
-router.post(
-  '/:id/snapshots',
-  asyncHandler(async (req, res) => {
-    const asset = req.user.otherAssets.id(req.params.id);
-    if (!asset) return res.status(404).json({ error: 'Asset not found' });
-    const { date, amount } = req.body || {};
-    if (!date) return res.status(400).json({ error: 'date is required' });
-    const amountNum = Number(amount) || 0;
-    const existing = asset.history.find((h) => h.date === date);
-    if (existing) existing.amount = amountNum;
-    else asset.history.push({ date, amount: amountNum });
+// Quick inline update — also records today's snapshot so history builds itself.
+router.patch('/:id', mutating(async (req, res) => {
+  V.objectId(req.params.id);
+  const asset = req.user.otherAssets.id(req.params.id);
+  if (!asset) return res.status(404).json({ error: 'Asset not found' });
+  const b = V.body(req);
+  const today = todayStr();
+  if (b.name !== undefined) asset.name = V.str(b.name, { field: 'name', required: true, max: 120 });
+  if (b.category !== undefined) asset.category = V.str(b.category, { field: 'category', required: true, max: 60 });
+  if (b.amount !== undefined) {
+    const amount = round2(V.num(b.amount, { field: 'amount', min: 0, max: 1e12, required: true }));
+    const todays = asset.history.find((h) => h.date === today);
+    if (todays) todays.amount = amount; else asset.history.push({ date: today, amount });
     recomputeAmountFromHistory(asset);
-    asset.updatedAt = new Date().toISOString().slice(0, 10);
-    await req.user.save();
-    res.status(201).json({ otherAssets: serializeList(req.user.otherAssets) });
-  })
-);
+  }
+  asset.updatedAt = today;
+  await req.user.save();
+  res.json(reply(req.user));
+}));
 
-router.patch(
-  '/:id/snapshots/:snapshotId',
-  asyncHandler(async (req, res) => {
-    const asset = req.user.otherAssets.id(req.params.id);
-    if (!asset) return res.status(404).json({ error: 'Asset not found' });
-    const snapshot = asset.history.id(req.params.snapshotId);
-    if (!snapshot) return res.status(404).json({ error: 'Snapshot not found' });
-    const { date, amount } = req.body || {};
-    if (date) snapshot.date = date;
-    if (amount !== undefined) snapshot.amount = Number(amount) || 0;
-    recomputeAmountFromHistory(asset);
-    await req.user.save();
-    res.json({ otherAssets: serializeList(req.user.otherAssets) });
-  })
-);
+router.delete('/:id', mutating(async (req, res) => {
+  V.objectId(req.params.id);
+  if (!req.user.otherAssets.id(req.params.id)) return res.status(404).json({ error: 'Asset not found' });
+  req.user.otherAssets.pull({ _id: req.params.id });
+  await req.user.save();
+  res.json(reply(req.user));
+}));
 
-router.delete(
-  '/:id/snapshots/:snapshotId',
-  asyncHandler(async (req, res) => {
-    const asset = req.user.otherAssets.id(req.params.id);
-    if (!asset) return res.status(404).json({ error: 'Asset not found' });
-    asset.history.pull({ _id: req.params.snapshotId });
-    recomputeAmountFromHistory(asset);
-    await req.user.save();
-    res.json({ otherAssets: serializeList(req.user.otherAssets) });
-  })
-);
+router.post('/:id/snapshots', mutating(async (req, res) => {
+  V.objectId(req.params.id);
+  const asset = req.user.otherAssets.id(req.params.id);
+  if (!asset) return res.status(404).json({ error: 'Asset not found' });
+  const b = V.body(req);
+  const date = snapshotDate(b.date);
+  const amount = round2(V.num(b.amount, { field: 'amount', min: 0, max: 1e12, required: true }));
+  const existing = asset.history.find((h) => h.date === date);
+  if (existing) existing.amount = amount; else asset.history.push({ date, amount });
+  recomputeAmountFromHistory(asset);
+  asset.updatedAt = todayStr();
+  await req.user.save();
+  res.status(201).json(reply(req.user));
+}));
+
+router.patch('/:id/snapshots/:snapshotId', mutating(async (req, res) => {
+  V.objectId(req.params.id); V.objectId(req.params.snapshotId, 'snapshotId');
+  const asset = req.user.otherAssets.id(req.params.id);
+  if (!asset) return res.status(404).json({ error: 'Asset not found' });
+  const snap = asset.history.id(req.params.snapshotId);
+  if (!snap) return res.status(404).json({ error: 'Snapshot not found' });
+  const b = V.body(req);
+  if (b.date !== undefined) snap.date = snapshotDate(b.date);
+  if (b.amount !== undefined) snap.amount = round2(V.num(b.amount, { field: 'amount', min: 0, max: 1e12, required: true }));
+  recomputeAmountFromHistory(asset);
+  await req.user.save();
+  res.json(reply(req.user));
+}));
+
+router.delete('/:id/snapshots/:snapshotId', mutating(async (req, res) => {
+  V.objectId(req.params.id); V.objectId(req.params.snapshotId, 'snapshotId');
+  const asset = req.user.otherAssets.id(req.params.id);
+  if (!asset) return res.status(404).json({ error: 'Asset not found' });
+  if (!asset.history.id(req.params.snapshotId)) return res.status(404).json({ error: 'Snapshot not found' });
+  asset.history.pull({ _id: req.params.snapshotId });
+  recomputeAmountFromHistory(asset);
+  await req.user.save();
+  res.json(reply(req.user));
+}));
 
 module.exports = router;

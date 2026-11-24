@@ -17,22 +17,12 @@ import {
 import { Amount } from "@/lib/PrivacyContext";
 import Modal, { ModalActions } from '@/components/Modal';
 import { IconPlus, IconTrash, IconEdit } from '@/components/Icons';
-import { fmtINR, todayStr, confirmDelete } from '@/lib/utils';
+import { fmtINR, todayStr, confirmDelete, calcMaturity, daysBetween, isDateStr } from '@/lib/utils';
 import { FD_COMPOUNDING } from '@/lib/constants';
 
-function calcMaturity(principal, rate, startDate, maturityDate, compounding) {
-  const start = new Date(startDate);
-  const end = new Date(maturityDate);
-  const years = (end - start) / (365.25 * 24 * 3600 * 1000);
-  const r = rate / 100;
-  const n = { 'Monthly': 12, 'Quarterly': 4, 'Half-yearly': 2, 'Yearly': 1, 'On maturity': 1 }[compounding] || 4;
-  if (compounding === 'On maturity') return principal * (1 + r * years);
-  return principal * Math.pow(1 + r / n, n * years);
-}
-
 function daysUntil(dateStr) {
-  if (!dateStr) return null;
-  return Math.ceil((new Date(dateStr) - new Date()) / 86400000);
+  if (!isDateStr(dateStr)) return null;
+  return daysBetween(todayStr(), dateStr);
 }
 
 function statusColor(status) {
@@ -49,7 +39,7 @@ const blank = {
 };
 
 export default function FDSection() {
-  const { state, ready, addFD, updateFD, deleteFD, matureFD } = useFinance();
+  const { state, ready, addFD, updateFD, deleteFD, matureFD, notify } = useFinance();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(blank);
@@ -82,26 +72,40 @@ export default function FDSection() {
       interestRate: String(fd.interestRate), startDate: fd.startDate, maturityDate: fd.maturityDate,
       compounding: fd.compounding, autoRenew: fd.autoRenew, creditToAccountId: fd.creditToAccountId || '',
       notes: fd.notes || '',
+      // bank-quoted maturity value is preserved across edits
+      manualMaturity: fd.manualMaturity ? String(fd.maturityAmount) : '',
     });
     setModalOpen(true);
   }
 
-  function submit() {
-    if (!form.bankName.trim()) return alert('Enter bank/institution name');
-    if (!form.principal || Number(form.principal) <= 0) return alert('Enter principal amount');
-    if (!form.interestRate || Number(form.interestRate) <= 0) return alert('Enter interest rate');
-    if (!form.startDate || !form.maturityDate) return alert('Enter start and maturity dates');
+  async function submit() {
+    if (!form.bankName.trim()) return notify('Enter bank/institution name');
+    if (!(Number(form.principal) > 0)) return notify('Enter principal amount');
+    if (!(Number(form.interestRate) > 0) || Number(form.interestRate) > 100) return notify('Enter an interest rate between 0 and 100');
+    if (!form.startDate || !form.maturityDate) return notify('Enter start and maturity dates');
+    if (form.maturityDate <= form.startDate) return notify('Maturity date must be after the start date');
+    const original = editingId ? fds.find((f) => f.id === editingId) : null;
+    const manual = Number(form.manualMaturity);
     const payload = {
       bankName: form.bankName.trim(), accountId: form.accountId,
       principal: Number(form.principal), interestRate: Number(form.interestRate),
       startDate: form.startDate, maturityDate: form.maturityDate,
       compounding: form.compounding, autoRenew: form.autoRenew,
       creditToAccountId: form.creditToAccountId, notes: form.notes.trim(),
-      ...(form.manualMaturity && Number(form.manualMaturity) > 0 ? { maturityAmount: Number(form.manualMaturity) } : {}),
+      // a value → keep the bank's figure; cleared on an FD that had one → go back to calculating it
+      ...(manual > 0 ? { maturityAmount: manual } : original?.manualMaturity ? { maturityAmount: 0 } : {}),
     };
-    if (editingId) updateFD(editingId, payload);
-    else addFD(payload);
-    setModalOpen(false);
+    const ok = editingId ? await updateFD(editingId, payload) : await addFD(payload);
+    if (ok) setModalOpen(false);
+  }
+
+  async function closeFD(fd) {
+    const early = fd.maturityDate > todayStr();
+    const msg = early
+      ? `This FD matures on ${fd.maturityDate}. Close it early? You'll be credited the interest accrued so far. This cannot be undone.`
+      : 'Mark this FD as matured / renewed? This cannot be undone.';
+    if (!confirmDelete(msg)) return;
+    await matureFD(fd.id, early);
   }
 
   const displayed = fds.filter((f) => filterStatus === 'all' || f.status === filterStatus);
@@ -194,13 +198,9 @@ export default function FDSection() {
                       <Btn
                         variant="secondary"
                         className="text-xs px-2 py-1"
-                        onClick={() =>
-                          confirmDelete(
-                            `Mark FD as matured/renewed? This cannot be undone.`,
-                          ) && matureFD(fd.id)
-                        }
+                        onClick={() => closeFD(fd)}
                       >
-                        {fd.autoRenew ? "Renew now" : "Mark matured"}
+                        {fd.maturityDate > todayStr() ? "Close early" : fd.autoRenew ? "Renew now" : "Mark matured"}
                       </Btn>
                     )}
                     <IconBtn

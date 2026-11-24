@@ -1,166 +1,159 @@
 const User = require('../models/User');
+const { withUser } = require('./withUser');
+const { todayStr } = require('../utils/dates');
 
 /*
- * Two free, keyless sources, chosen after real-world testing:
- *
- *   STOCKS       -> Yahoo Finance's public quote endpoint. You paste EXACTLY
- *                   what Google's finance card shows you under the name —
- *                   e.g. "NSE:GOLDBEES", "DATAPATTNS", "TCS", "RELIANCE.NS" —
- *                   and normalizeStockSymbol() below converts it to what
- *                   Yahoo expects (strips an "NSE:"/"BSE:"/"BOM:" prefix,
- *                   adds ".NS" if there's no suffix at all, ".BO" if you
- *                   wrote "BSE:" or "BOM:"). No manual format conversion
- *                   needed on your end.
- *
- *   MUTUAL FUNDS -> mfapi.in — a free, keyless API built specifically to
- *                   serve India's AMFI mutual fund data reliably (AMFI's own
- *                   raw file can be flaky to hit directly, confirmed in
- *                   testing). Two ways to use it:
- *                     1. Leave the symbol blank -> we search mfapi.in by the
- *                        holding's NAME and use the best match. The scheme
- *                        code it finds gets cached onto the holding so every
- *                        sync after the first is a single direct lookup.
- *                     2. Or type the AMFI scheme code yourself (a plain
- *                        number, e.g. "122639") for an exact, immediate match.
- *                   The Google-style slug codes (e.g. "PARA_PARI_FLEX_1W4KC")
- *                   aren't a public lookup key anywhere, so they're not used
- *                   directly — but you don't need them: leaving the field
- *                   blank and letting the name-search resolve it does the
- *                   same job.
- *
- *   GOLD         -> no equivalent free, reliable, keyless daily source
- *                   exists — stays manual, update it by hand when you check
- *                   a rate.
+ * Free, keyless sources:
+ *   STOCKS       -> Yahoo Finance public chart endpoint (unofficial; may change).
+ *                   Paste what Google shows ("NSE:GOLDBEES", "DATAPATTNS", "TCS").
+ *   MUTUAL FUNDS -> mfapi.in (AMFI data). Leave symbol blank to match by name,
+ *                   or type the AMFI scheme code for an exact match.
+ *   GOLD         -> manual.
  */
+
+const FETCH_TIMEOUT_MS = 10000;
+const MIN_GAP_MS = 250; // be polite to the free APIs
+const MAX_PRICE = 1e9;
+
+async function getJson(url, headers) {
+  const res = await fetch(url, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+  if (!res.ok) throw new Error(`${new URL(url).hostname} returned ${res.status}`);
+  return res.json();
+}
 
 function normalizeStockSymbol(raw) {
   let s = String(raw).trim().toUpperCase();
-  // Strip a Google-style "EXCHANGE:" prefix if present.
-  const prefixMatch = s.match(/^(NSE|BSE|BOM):(.+)$/);
+  const m = s.match(/^(NSE|BSE|BOM):(.+)$/);
   let exchange = null;
-  if (prefixMatch) {
-    exchange = prefixMatch[1];
-    s = prefixMatch[2];
-  }
-  // Already has a Yahoo-style suffix -> use as-is.
+  if (m) { exchange = m[1]; s = m[2]; }
   if (/\.(NS|BO)$/.test(s)) return s;
   if (exchange === 'BSE' || exchange === 'BOM') return `${s}.BO`;
-  return `${s}.NS`; // default assumption: NSE, the common case
+  return `${s}.NS`;
 }
 
+const validPrice = (p) => Number.isFinite(p) && p > 0 && p < MAX_PRICE;
+
 async function fetchStockPrice(symbol) {
-  const yahooSymbol = normalizeStockSymbol(symbol);
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}`;
-  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-  if (!res.ok) throw new Error(`Yahoo Finance returned ${res.status} for "${yahooSymbol}"`);
-  const data = await res.json();
+  const y = normalizeStockSymbol(symbol);
+  const data = await getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(y)}`, { 'User-Agent': 'Mozilla/5.0' });
   const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-  if (!Number.isFinite(price)) throw new Error(`No price found for "${yahooSymbol}" — check the symbol is a valid NSE/BSE ticker`);
+  if (!validPrice(price)) throw new Error(`No valid price for "${y}" — check it is a real NSE/BSE ticker`);
   return price;
 }
 
-async function fetchMutualFundNavByCode(schemeCode) {
-  const res = await fetch(`https://api.mfapi.in/mf/${encodeURIComponent(schemeCode)}/latest`);
-  if (!res.ok) throw new Error(`mfapi.in returned ${res.status} for scheme code "${schemeCode}"`);
-  const data = await res.json();
-  const nav = parseFloat(data?.data?.[0]?.nav);
-  if (!Number.isFinite(nav)) throw new Error(`No NAV found for scheme code "${schemeCode}"`);
-  return nav;
+async function fetchMutualFundNavByCode(code) {
+  const data = await getJson(`https://api.mfapi.in/mf/${encodeURIComponent(code)}/latest`);
+  const row = data?.data?.[0];
+  const nav = parseFloat(row?.nav);
+  if (!validPrice(nav)) throw new Error(`No valid NAV for scheme code "${code}"`);
+  return { nav, navDate: row?.date || '' };
 }
 
-// Cached in-memory for the life of the process — search results don't change
-// often enough to justify hitting mfapi.in's search endpoint every sync.
 const mfSearchCache = new Map();
+const tokens = (s) => String(s).toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter((t) => t.length >= 3 && !['fund', 'the', 'and', 'plan', 'option'].includes(t));
 
+// Match by name — but ONLY accept schemes whose name contains every
+// significant word of the holding's name, so we never price the wrong fund.
 async function searchMutualFundCode(name) {
   const key = name.trim().toLowerCase();
   if (mfSearchCache.has(key)) return mfSearchCache.get(key);
-
-  const res = await fetch(`https://api.mfapi.in/mf/search?q=${encodeURIComponent(name)}`);
-  if (!res.ok) throw new Error(`mfapi.in search returned ${res.status}`);
-  const results = await res.json();
-  if (!Array.isArray(results) || !results.length) {
-    throw new Error(`No mutual fund matching "${name}" found on mfapi.in — try adding the AMFI scheme code directly instead`);
-  }
-
-  // Prefer a "Direct Growth" match if one exists (the common choice for
-  // self-directed investors); otherwise take the first result.
-  const preferred =
-    results.find((r) => /direct/i.test(r.schemeName) && /growth/i.test(r.schemeName)) ||
-    results.find((r) => /direct/i.test(r.schemeName)) ||
-    results[0];
-
-  const match = { code: preferred.schemeCode, matchedName: preferred.schemeName };
+  const results = await getJson(`https://api.mfapi.in/mf/search?q=${encodeURIComponent(name)}`);
+  const want = tokens(name);
+  const ok = (Array.isArray(results) ? results : []).filter((r) => {
+    const have = String(r.schemeName).toLowerCase();
+    return want.length > 0 && want.every((t) => have.includes(t));
+  });
+  if (!ok.length) throw new Error(`No confident match for "${name}" — enter the AMFI scheme code in the Symbol field`);
+  const best = ok.find((r) => /direct/i.test(r.schemeName) && /growth/i.test(r.schemeName))
+    || ok.find((r) => /direct/i.test(r.schemeName)) || ok[0];
+  const match = { code: String(best.schemeCode), matchedName: best.schemeName };
   mfSearchCache.set(key, match);
   return match;
 }
 
-async function fetchMutualFundNav(holding) {
-  // A plain number typed into the symbol field is treated as a known AMFI
-  // scheme code -> direct, exact lookup.
-  if (holding.symbol && /^\d+$/.test(holding.symbol.trim())) {
-    return { nav: await fetchMutualFundNavByCode(holding.symbol.trim()), resolvedCode: holding.symbol.trim(), matchedName: null };
-  }
-  // Otherwise search by name (ignoring any non-numeric "symbol" text someone
-  // pasted, like a Google MUTF_IN slug, since that's not a lookup key mfapi
-  // understands) and cache the resolved code for next time.
-  const { code, matchedName } = await searchMutualFundCode(holding.name);
-  return { nav: await fetchMutualFundNavByCode(code), resolvedCode: code, matchedName };
+// dd-mm-yyyy -> age in days
+function navAgeDays(d) {
+  const m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(d || '');
+  if (!m) return null;
+  return Math.floor((Date.now() - Date.UTC(+m[3], +m[2] - 1, +m[1])) / 86400000);
 }
 
-async function syncHolding(holding) {
-  if (!holding.autoSync || holding.assetType === 'Gold') {
-    if (holding.assetType === 'Gold') holding.lastSyncStatus = 'no-symbol';
-    return false;
-  }
-  try {
-    if (holding.assetType === 'Stock') {
-      if (!holding.symbol) {
-        holding.lastSyncStatus = 'no-symbol';
-        return false;
-      }
-      holding.currentRate = await fetchStockPrice(holding.symbol);
-    } else {
-      const { nav, resolvedCode, matchedName } = await fetchMutualFundNav(holding);
-      holding.currentRate = nav;
-      if (resolvedCode && holding.symbol !== resolvedCode) {
-        holding.symbol = resolvedCode; // cache it so future syncs skip the search
-        holding.lastSyncMessage = matchedName ? `Matched: ${matchedName}` : '';
-      }
-    }
-    holding.lastSyncedAt = new Date();
-    holding.lastSyncStatus = 'ok';
-    if (!holding.lastSyncMessage) holding.lastSyncMessage = '';
-    holding.updatedAt = new Date().toISOString().slice(0, 10);
-    return true;
-  } catch (err) {
-    holding.lastSyncStatus = 'failed';
-    holding.lastSyncMessage = err.message.slice(0, 200);
-    holding.lastSyncedAt = new Date();
-    return false;
-  }
+// Network lookup only — no mutation. Returns { price, symbolToStore?, note? }.
+async function lookup(h) {
+  if (h.assetType === 'Stock') return { price: await fetchStockPrice(h.symbol) };
+  const code = h.symbol && /^\d+$/.test(h.symbol.trim()) ? { code: h.symbol.trim(), matchedName: null } : await searchMutualFundCode(h.name);
+  const { nav, navDate } = await fetchMutualFundNavByCode(code.code);
+  const notes = [];
+  if (code.matchedName) notes.push(`Matched: ${code.matchedName}`);
+  const age = navAgeDays(navDate);
+  if (age !== null && age > 10) notes.push(`NAV is ${age} days old`);
+  return { price: nav, symbolToStore: code.code, note: notes.join(' · ') };
 }
 
+function applyResult(h, result, err) {
+  h.lastSyncedAt = new Date();
+  if (err) {
+    h.lastSyncStatus = 'failed';
+    h.lastSyncMessage = String(err.message || err).slice(0, 200);
+    return false;
+  }
+  const prev = Number(h.currentRate) || 0;
+  const notes = result.note ? [result.note] : [];
+  if (prev > 0) {
+    const move = Math.abs(result.price - prev) / prev * 100;
+    if (move > 50) notes.push(`⚠ price moved ${move.toFixed(0)}% — check for a split/bonus`);
+  }
+  h.currentRate = result.price;
+  if (result.symbolToStore && h.symbol !== result.symbolToStore) h.symbol = result.symbolToStore;
+  h.lastSyncStatus = 'ok';
+  h.lastSyncMessage = notes.join(' · ').slice(0, 300); // success clears any stale error
+  h.updatedAt = todayStr();
+  return true;
+}
+
+const eligible = (h) => h.autoSync && h.assetType !== 'Gold' && !(h.assetType === 'Stock' && !h.symbol);
+
+// Used by the "Sync now" button.
+async function syncHolding(h) {
+  if (h.assetType === 'Gold') { h.lastSyncStatus = 'no-symbol'; return false; }
+  if (!h.autoSync) return false;
+  if (h.assetType === 'Stock' && !h.symbol) { h.lastSyncStatus = 'no-symbol'; return false; }
+  try { return applyResult(h, await lookup(h)); } catch (e) { return applyResult(h, null, e); }
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Nightly job. Fetch prices FIRST (slow, network), then apply them to a fresh
+// copy of each user's document (fast) so we never overwrite concurrent edits.
 async function syncAllUsers() {
-  const users = await User.find({ 'holdings.0': { $exists: true } });
-  let updated = 0;
-  let attempted = 0;
+  const cache = new Map();
+  let updated = 0; let attempted = 0; let users = 0;
+  const cursor = User.find({ 'holdings.0': { $exists: true } }).select('_id').lean().cursor();
 
-  for (const user of users) {
-    let changed = false;
-    for (const holding of user.holdings) {
-      if (!holding.autoSync || holding.assetType === 'Gold') continue;
-      if (holding.assetType === 'Stock' && !holding.symbol) continue;
+  for await (const { _id } of cursor) {
+    users += 1;
+    const snapshot = await User.findById(_id).select('holdings.name holdings.symbol holdings.assetType holdings.autoSync').lean();
+    const results = new Map();
+    for (const h of snapshot?.holdings || []) {
+      if (!eligible(h)) continue;
       attempted += 1;
-      const ok = await syncHolding(holding);
-      if (ok) updated += 1;
-      changed = true;
+      const key = `${h.assetType}|${h.assetType === 'Stock' ? h.symbol : (h.symbol || h.name)}`.toLowerCase();
+      if (!cache.has(key)) {
+        try { cache.set(key, { result: await lookup(h) }); } catch (e) { cache.set(key, { err: e }); }
+        await sleep(MIN_GAP_MS);
+      }
+      results.set(String(h._id), cache.get(key));
     }
-    if (changed) await user.save();
+    if (!results.size) continue;
+    await withUser(_id, (user) => {
+      for (const h of user.holdings) {
+        const r = results.get(String(h._id));
+        if (r && applyResult(h, r.result, r.err)) updated += 1;
+      }
+    }).catch((e) => console.error('[priceSync] user failed:', e.message));
   }
-
-  console.log(`[priceSync] ${updated}/${attempted} holding(s) updated across ${users.length} user(s).`);
-  return { updated, attempted, users: users.length };
+  console.log(`[priceSync] ${updated}/${attempted} holding(s) updated across ${users} user(s).`);
+  return { updated, attempted, users };
 }
 
-module.exports = { syncAllUsers, syncHolding, fetchStockPrice, fetchMutualFundNav, normalizeStockSymbol };
+module.exports = { syncAllUsers, syncHolding, fetchStockPrice, normalizeStockSymbol, searchMutualFundCode };

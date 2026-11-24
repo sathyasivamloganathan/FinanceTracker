@@ -13,7 +13,7 @@ import { INSURANCE_TYPES, PREMIUM_FREQUENCIES } from '@/lib/constants';
 const BLANK_FORM = { name: '', type: 'Life', insurer: '', policyNumber: '', premium: '', frequency: 'Yearly', coverage: '', dueDate: '', notes: '' };
 
 export default function InsuranceSection() {
-  const { state, ready, addInsurance, updateInsurance, deleteInsurance } = useFinance();
+  const { state, ready, addInsurance, updateInsurance, deleteInsurance, notify } = useFinance();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(BLANK_FORM);
@@ -49,8 +49,10 @@ export default function InsuranceSection() {
     setModalOpen(true);
   }
 
-  function submit() {
-    if (!form.name.trim()) return alert('Enter a policy name');
+  async function submit() {
+    if (!form.name.trim()) return notify('Enter a policy name');
+    if (form.premium !== '' && !(Number(form.premium) >= 0)) return notify('Premium must be a number');
+    if (form.coverage !== '' && !(Number(form.coverage) >= 0)) return notify('Coverage must be a number');
     const payload = {
       name: form.name.trim(),
       type: form.type,
@@ -62,9 +64,8 @@ export default function InsuranceSection() {
       dueDate: form.dueDate,
       notes: form.notes.trim(),
     };
-    if (editingId) updateInsurance(editingId, payload);
-    else addInsurance(payload);
-    setModalOpen(false);
+    const ok = editingId ? await updateInsurance(editingId, payload) : await addInsurance(payload);
+    if (ok) setModalOpen(false);
   }
 
   return (
@@ -75,7 +76,7 @@ export default function InsuranceSection() {
       {rows.length ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {rows.map((p) => {
-            const status = dueStatus(p.dueDate);
+            const status = dueStatus(p.dueDate, p.frequency);
             return (
               <Card key={p.id}>
                 <div className="flex justify-between items-start gap-2">

@@ -1,71 +1,62 @@
 const express = require('express');
-const asyncHandler = require('../utils/asyncHandler');
+const { mutating } = require('../utils/asyncHandler');
 const { serializeList } = require('../utils/serialize');
-const { holdingInvestedValue, holdingCurrentValue } = require('../utils/financeMath');
+const { todayStr } = require('../utils/dates');
+const { computeNetWorth } = require('../utils/financeMath');
+const { round2 } = require('../utils/money');
+const V = require('../utils/validate');
 
 const router = express.Router();
+const reply = (u) => ({ netWorthSnapshots: serializeList(u.netWorthSnapshots) });
 
-function isDate(s) { return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s); }
-
-function computeNetWorth(user) {
-  const breakdown = {};
-
-  // Market holdings (current value)
-  user.holdings.forEach((h) => {
-    const cat = { Stock: 'Stocks', 'Mutual Fund': 'Mutual Funds', Gold: 'Gold' }[h.assetType] || h.assetType;
-    breakdown[cat] = (breakdown[cat] || 0) + holdingCurrentValue(h);
-  });
-
-  // Other assets (cash, real estate, etc.)
-  user.otherAssets.forEach((a) => {
-    breakdown[a.category] = (breakdown[a.category] || 0) + (Number(a.amount) || 0);
-  });
-
-  // Fixed Deposits — principal (active only)
-  const fdTotal = (user.fds || [])
-    .filter(fd => fd.status === 'active')
-    .reduce((s, fd) => s + (Number(fd.principal) || 0), 0);
-  if (fdTotal > 0) breakdown['Fixed Deposits'] = (breakdown['Fixed Deposits'] || 0) + fdTotal;
-
-  // Bank accounts
-  const bankTotal = (user.bankAccounts || [])
-    .reduce((s, a) => s + (Number(a.balance) || 0), 0);
-  if (bankTotal > 0) breakdown['Bank Accounts'] = (breakdown['Bank Accounts'] || 0) + bankTotal;
-
-  const grossAssets = Object.values(breakdown).reduce((a, b) => a + b, 0);
-  const totalLiabilities = user.liabilities.reduce((s, l) => s + (Number(l.amount) || 0), 0);
-  const invested = user.holdings.reduce((s, h) => s + holdingInvestedValue(h), 0)
-    + user.otherAssets.reduce((s, a) => s + (Number(a.amount) || 0), 0)
-    + fdTotal + bankTotal;
-
-  return { netWorth: grossAssets - totalLiabilities, invested, breakdown };
+function pastOrToday(v) {
+  const d = V.date(v, { field: 'date' });
+  if (d && d > todayStr()) throw V.bad('Snapshot date cannot be in the future');
+  return d;
 }
 
-// Auto snapshot of current state
-router.post('/', asyncHandler(async (req, res) => {
-  const { netWorth, invested, breakdown } = computeNetWorth(req.user);
-  const date = req.body.date || new Date().toISOString().slice(0, 10);
-  req.user.netWorthSnapshots.push({ date, netWorth, invested, breakdown });
+// One snapshot per calendar date — saving again for the same date replaces it.
+function upsert(user, snap) {
+  const existing = user.netWorthSnapshots.filter((s) => s.date === snap.date);
+  existing.forEach((s) => user.netWorthSnapshots.pull({ _id: s._id }));
+  user.netWorthSnapshots.push(snap);
+  user.netWorthSnapshots.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Auto snapshot of the current state.
+router.post('/', mutating(async (req, res) => {
+  const b = V.body(req);
+  const today = todayStr();
+  const date = pastOrToday(b.date) || today;
+  const { netWorth, invested, breakdown } = computeNetWorth(req.user, today);
+  // Category names become Map keys: '.' and a leading '$' are illegal there.
+  const safeBreakdown = {};
+  for (const [k, v] of Object.entries(breakdown)) {
+    const key = V.safeKey(k);
+    safeBreakdown[key] = round2((safeBreakdown[key] || 0) + v);
+  }
+  upsert(req.user, { date, netWorth, invested, breakdown: safeBreakdown });
   await req.user.save();
-  res.status(201).json({ netWorthSnapshots: serializeList(req.user.netWorthSnapshots) });
+  res.status(201).json(reply(req.user));
 }));
 
-// Manual past entry
-router.post('/manual', asyncHandler(async (req, res) => {
-  const { date, netWorth, notes } = req.body || {};
-  if (!isDate(date)) return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
-  const nw = Number(netWorth);
-  if (isNaN(nw)) return res.status(400).json({ error: 'netWorth must be a number' });
-  req.user.netWorthSnapshots.push({ date, netWorth: nw, invested: nw, breakdown: { Manual: nw }, notes: notes || '' });
-  req.user.netWorthSnapshots.sort((a, b) => a.date.localeCompare(b.date));
+// Manual past entry.
+router.post('/manual', mutating(async (req, res) => {
+  const b = V.body(req);
+  const date = V.date(b.date, { field: 'date', required: true });
+  if (date > todayStr()) throw V.bad('Snapshot date cannot be in the future');
+  const nw = round2(V.num(b.netWorth, { field: 'netWorth', min: -1e13, max: 1e13, required: true }));
+  upsert(req.user, { date, netWorth: nw, invested: nw, breakdown: { Manual: nw }, notes: V.str(b.notes, { field: 'notes', max: 300 }) });
   await req.user.save();
-  res.status(201).json({ netWorthSnapshots: serializeList(req.user.netWorthSnapshots) });
+  res.status(201).json(reply(req.user));
 }));
 
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', mutating(async (req, res) => {
+  V.objectId(req.params.id);
+  if (!req.user.netWorthSnapshots.id(req.params.id)) return res.status(404).json({ error: 'Snapshot not found' });
   req.user.netWorthSnapshots.pull({ _id: req.params.id });
   await req.user.save();
-  res.json({ netWorthSnapshots: serializeList(req.user.netWorthSnapshots) });
+  res.json(reply(req.user));
 }));
 
 module.exports = router;
