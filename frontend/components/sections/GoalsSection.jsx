@@ -12,7 +12,7 @@ import { fmtINR, netWorth, confirmDelete } from '@/lib/utils';
 const BLANK = { name: '', targetAmount: '', targetDate: '', notes: '' };
 
 export default function GoalsSection() {
-  const { state, ready, addGoal, updateGoal, deleteGoal, achieveGoal, reopenGoal } = useFinance();
+  const { state, ready, addGoal, updateGoal, deleteGoal, achieveGoal, reopenGoal, notify } = useFinance();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -35,13 +35,12 @@ export default function GoalsSection() {
     setModalOpen(true);
   }
 
-  function submit() {
-    if (!form.name.trim()) return alert('Enter a goal name');
-    if (!(Number(form.targetAmount) > 0)) return alert('Enter a target amount');
+  async function submit() {
+    if (!form.name.trim()) return notify('Enter a goal name');
+    if (!(Number(form.targetAmount) > 0)) return notify('Enter a target amount');
     const payload = { name: form.name.trim(), targetAmount: Number(form.targetAmount), targetDate: form.targetDate, notes: form.notes.trim() };
-    if (editingId) updateGoal(editingId, payload);
-    else addGoal(payload);
-    setModalOpen(false);
+    const ok = editingId ? await updateGoal(editingId, payload) : await addGoal(payload);
+    if (ok) setModalOpen(false);
   }
 
   return (

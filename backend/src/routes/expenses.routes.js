@@ -1,78 +1,74 @@
 const express = require('express');
-const asyncHandler = require('../utils/asyncHandler');
+const { mutating } = require('../utils/asyncHandler');
 const { serializeList } = require('../utils/serialize');
+const { todayStr } = require('../utils/dates');
+const { applyEntry, reverseEntry, assertAccountsExist } = require('../utils/ledger');
+const V = require('../utils/validate');
 
 const router = express.Router();
+const TYPES = ['expense', 'transfer', 'atm_withdrawal', 'income'];
+const MAX_AMOUNT = 1e9;
 
-const VALID_EXPENSE_TYPES = ['expense', 'transfer', 'atm_withdrawal', 'income'];
-const MAX_DESC = 200;
-const MAX_CAT = 60;
+const reply = (u) => ({ expenses: serializeList(u.expenses), bankAccounts: serializeList(u.bankAccounts) });
 
-function isDate(s) { return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s); }
+function parseFields(b, { partial }) {
+  const out = {};
+  const has = (k) => b[k] !== undefined;
+  if (!partial || has('date')) out.date = V.date(b.date, { field: 'date' }) || todayStr();
+  if (!partial || has('category')) out.category = V.str(b.category, { field: 'category', max: 60 }) || 'Other';
+  if (!partial || has('description')) out.description = V.str(b.description, { field: 'description', max: 200 });
+  if (!partial || has('amount')) out.amount = V.num(b.amount, { field: 'amount', min: 0.01, max: MAX_AMOUNT, required: true });
+  if (!partial || has('accountId')) out.accountId = V.str(b.accountId, { field: 'accountId', max: 40 });
+  if (!partial || has('expenseType')) out.expenseType = V.oneOf(b.expenseType, TYPES, { field: 'expenseType', fallback: 'expense' });
+  if (!partial || has('transferToAccountId')) out.transferToAccountId = V.str(b.transferToAccountId, { field: 'transferToAccountId', max: 40 });
+  if (!partial || has('notes')) out.notes = V.str(b.notes, { field: 'notes', max: 300 });
+  return out;
+}
 
-router.post('/', asyncHandler(async (req, res) => {
-  const { date, category, description, amount, accountId, expenseType, transferToAccountId } = req.body || {};
-
-  const amountNum = Number(amount);
-  if (!(amountNum > 0)) return res.status(400).json({ error: 'amount must be a positive number' });
-  if (amountNum > 1e9) return res.status(400).json({ error: 'amount exceeds maximum allowed' });
-  if (date && !isDate(date)) return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
-  if (expenseType && !VALID_EXPENSE_TYPES.includes(expenseType))
-    return res.status(400).json({ error: 'Invalid expenseType' });
-
-  const txDate = (date && isDate(date)) ? date : new Date().toISOString().slice(0, 10);
-
-  req.user.expenses.push({
-    date: txDate,
-    category: category ? String(category).trim().slice(0, MAX_CAT) : 'Other',
-    description: description ? String(description).trim().slice(0, MAX_DESC) : '',
-    amount: amountNum,
-    accountId: accountId || '',
-    expenseType: VALID_EXPENSE_TYPES.includes(expenseType) ? expenseType : 'expense',
-    transferToAccountId: transferToAccountId || '',
-  });
-
-  // Auto-deduct from linked bank account for regular expenses
-  if (accountId && (expenseType === 'expense' || !expenseType)) {
-    const acct = req.user.bankAccounts.id(accountId);
-    if (acct) { acct.balance -= amountNum; acct.updatedAt = txDate; }
+function checkTransfer(e) {
+  if (e.expenseType === 'transfer' && !(e.accountId && e.transferToAccountId)) {
+    throw V.bad('A transfer needs both a source and a destination account');
   }
+  if (e.expenseType !== 'transfer') e.transferToAccountId = '';
+}
 
+router.post('/', mutating(async (req, res) => {
+  const e = parseFields(V.body(req), { partial: false });
+  checkTransfer(e);
+  assertAccountsExist(req.user, e);
+  req.user.expenses.push(e);
+  applyEntry(req.user, e);
   await req.user.save();
-  res.status(201).json({
-    expenses: serializeList(req.user.expenses),
-    bankAccounts: serializeList(req.user.bankAccounts),
-  });
+  res.status(201).json(reply(req.user));
 }));
 
-router.patch('/:id', asyncHandler(async (req, res) => {
+router.patch('/:id', mutating(async (req, res) => {
+  V.objectId(req.params.id);
   const expense = req.user.expenses.id(req.params.id);
   if (!expense) return res.status(404).json({ error: 'Expense not found' });
 
-  const { date, category, description, amount, accountId } = req.body || {};
-  if (date !== undefined) {
-    if (!isDate(date)) return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
-    expense.date = date;
-  }
-  if (category !== undefined) expense.category = String(category).trim().slice(0, MAX_CAT);
-  if (description !== undefined) expense.description = String(description).trim().slice(0, MAX_DESC);
-  if (amount !== undefined) {
-    const a = Number(amount);
-    if (!(a > 0) || a > 1e9) return res.status(400).json({ error: 'amount must be a positive number ≤ 1 billion' });
-    expense.amount = a;
-  }
-  if (accountId !== undefined) expense.accountId = accountId;
+  const patch = parseFields(V.body(req), { partial: true });
+  const before = expense.toObject();
+  const next = { ...before, ...patch };
+  checkTransfer(next);
+  assertAccountsExist(req.user, next);
 
+  reverseEntry(req.user, before);          // undo the old balance effect…
+  for (const k of Object.keys(patch)) expense[k] = next[k];
+  if (next.transferToAccountId !== undefined) expense.transferToAccountId = next.transferToAccountId;
+  applyEntry(req.user, next);              // …and apply the new one
   await req.user.save();
-  res.json({ expenses: serializeList(req.user.expenses) });
+  res.json(reply(req.user));
 }));
 
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', mutating(async (req, res) => {
+  V.objectId(req.params.id);
   const expense = req.user.expenses.id(req.params.id);
   if (!expense) return res.status(404).json({ error: 'Expense not found' });
+  reverseEntry(req.user, expense.toObject()); // deleting refunds / un-credits the account
   req.user.expenses.pull({ _id: req.params.id });
   await req.user.save();
-  res.json({ expenses: serializeList(req.user.expenses) });
+  res.json(reply(req.user));
 }));
 
 module.exports = router;

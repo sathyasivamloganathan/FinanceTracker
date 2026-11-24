@@ -17,7 +17,7 @@ import {
 export default function NetWorthSection() {
   const {
     state, ready,
-    takeSnapshot, addPastSnapshot, deleteSnapshot,
+    takeSnapshot, addPastSnapshot, deleteSnapshot, notify,
   } = useFinance();
   const [pastModalOpen, setPastModalOpen] = useState(false);
   const [pastForm, setPastForm] = useState({ date: '', netWorth: '', notes: '' });
@@ -26,8 +26,6 @@ export default function NetWorthSection() {
 
   const nw            = netWorth(state);
   const inv           = totalInvested(state);
-  const pl            = nw - inv;
-  const plPct         = inv ? (pl / inv) * 100 : 0;
   const eqCur         = totalCurrentEquityValue(state);
   const eqInv         = totalInvestedEquityValue(state);
   const eqPl          = eqCur - eqInv;
@@ -42,13 +40,14 @@ export default function NetWorthSection() {
   const growth        = first && last ? last.netWorth - first.netWorth : null;
   const growthPct     = first && first.netWorth ? (growth / first.netWorth) * 100 : null;
 
-  function submitPast() {
-    if (!pastForm.date) return alert('Enter a date');
-    const nwVal = Number(pastForm.netWorth);
-    if (isNaN(nwVal) || nwVal < 0) return alert('Enter a valid net worth amount');
-    addPastSnapshot(pastForm.date, nwVal, pastForm.notes);
-    setPastModalOpen(false);
-    setPastForm({ date: '', netWorth: '', notes: '' });
+  async function submitPast() {
+    if (!pastForm.date) return notify('Enter a date');
+    if (pastForm.netWorth === '' || !Number.isFinite(Number(pastForm.netWorth))) return notify('Enter a valid net worth amount');
+    const ok = await addPastSnapshot(pastForm.date, Number(pastForm.netWorth), pastForm.notes);
+    if (ok) {
+      setPastModalOpen(false);
+      setPastForm({ date: '', netWorth: '', notes: '' });
+    }
   }
 
   return (
@@ -59,14 +58,16 @@ export default function NetWorthSection() {
           label="Net Worth"
           value={<Amount>{fmtINR(nw)}</Amount>}
           delta={
-            <Amount>{`${pl >= 0 ? "▲" : "▼"} ${fmtINR(Math.abs(pl))} (${fmtPct(plPct)})`}</Amount>
+            growth !== null
+              ? <Amount>{`${growth >= 0 ? "▲" : "▼"} ${fmtINR(Math.abs(growth))}${growthPct !== null ? ` (${fmtPct(growthPct)})` : ''} since first snapshot`}</Amount>
+              : 'Take a snapshot to track growth'
           }
-          deltaClass={pl >= 0 ? "text-emerald" : "text-clay"}
+          deltaClass={growth === null ? "text-inkMuted dark:text-gray-400" : growth >= 0 ? "text-emerald" : "text-clay"}
         />
         <StatCard
           label="Total Invested"
           value={<Amount>{fmtINR(inv)}</Amount>}
-          delta="across all instruments"
+          delta="cost of market holdings"
           deltaClass="text-inkMuted dark:text-gray-400"
         />
         <StatCard
