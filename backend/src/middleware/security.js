@@ -69,7 +69,7 @@ function csrfGuard(req, res, next) {
   next();
 }
 
-const limiterBase = { standardHeaders: true, legacyHeaders: false, keyGenerator: ipKey, message: { error: 'Too many requests — please slow down and try again shortly.' } };
+const limiterBase = { standardHeaders: true, legacyHeaders: false, keyGenerator: ipKey, message: { error: 'Too many requests - please slow down and try again shortly.' } };
 
 const generalLimiter = rateLimit({ ...limiterBase, windowMs: 15 * 60 * 1000, limit: 400 });
 const writeLimiter = rateLimit({
@@ -79,19 +79,19 @@ const writeLimiter = rateLimit({
 // Per IP; only failed attempts count.
 const authLimiter = rateLimit({
   ...limiterBase, windowMs: 15 * 60 * 1000, limit: 20, skipSuccessfulRequests: true,
-  message: { error: 'Too many attempts — please wait a few minutes and try again.' },
+  message: { error: 'Too many attempts - please wait a few minutes and try again.' },
 });
 // Per target account (e-mail), independent of the caller's IP.
 const emailKey = (req) => `e:${String(req.body?.email || '').toLowerCase().trim().slice(0, 254)}`;
 const perEmailLimiter = rateLimit({
   ...limiterBase, windowMs: 15 * 60 * 1000, limit: 10, skipSuccessfulRequests: true, keyGenerator: emailKey,
-  message: { error: 'Too many attempts — please wait a few minutes and try again.' },
+  message: { error: 'Too many attempts - please wait a few minutes and try again.' },
 });
 // Very low-volume, abuse-prone actions (e-mail sending, password checks).
 const makeSensitiveLimiter = (limit, windowMs = 60 * 60 * 1000) => rateLimit({
   ...limiterBase, windowMs, limit,
   keyGenerator: (req) => `u:${req.user ? String(req.user._id) : 'anon'}`,
-  message: { error: 'Too many requests for this action — try again later.' },
+  message: { error: 'Too many requests for this action - try again later.' },
 });
 const ipSensitiveLimiter = (limit, windowMs = 60 * 60 * 1000) => rateLimit({ ...limiterBase, windowMs, limit });
 

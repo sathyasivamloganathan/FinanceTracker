@@ -48,7 +48,7 @@ export default function AllocationSection() {
       <p className="text-inkMuted text-[13.5px] max-w-xl mb-5">
         Set where you&apos;d ideally like your money split, then see how today&apos;s actual mix compares. Targets currently total{' '}
         <b className={Math.abs(targetSum - 100) < 0.5 ? 'text-emerald' : 'text-clay'}>{targetSum.toFixed(1)}%</b>
-        {Math.abs(targetSum - 100) > 0.5 ? ' — aim for 100%.' : '.'}
+        {Math.abs(targetSum - 100) > 0.5 ? ' - aim for 100%.' : '.'}
       </p>
 
       <div className="grid md:grid-cols-2 gap-4">

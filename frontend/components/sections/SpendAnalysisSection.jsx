@@ -142,7 +142,7 @@ export default function SpendAnalysisSection() {
         <StatCard label="Total spent" value={fmtINR(total)} />
         <StatCard label="Transactions" value={String(txCount)} />
         <StatCard label="Avg per transaction" value={fmtINR(txCount ? total / txCount : 0)} />
-        <StatCard label="Top category" value={catData[0]?.[0] || '—'} delta={catData[0] ? fmtINR(catData[0][1]) : ''} deltaClass="text-inkMuted dark:text-gray-400" />
+        <StatCard label="Top category" value={catData[0]?.[0] || '-'} delta={catData[0] ? fmtINR(catData[0][1]) : ''} deltaClass="text-inkMuted dark:text-gray-400" />
       </div>
 
       {/* Category breakdown + drill-down */}
@@ -182,7 +182,7 @@ export default function SpendAnalysisSection() {
                       </div>
                     </td>
                     <td className="num font-mono">{fmtINR(amt)}</td>
-                    <td className={`num font-mono text-xs ${overAvg ? 'text-clay' : 'text-inkMuted dark:text-gray-400'}`}>{avg > 0 ? fmtINR(avg) : '—'}</td>
+                    <td className={`num font-mono text-xs ${overAvg ? 'text-clay' : 'text-inkMuted dark:text-gray-400'}`}>{avg > 0 ? fmtINR(avg) : '-'}</td>
                     <td className="num text-inkMuted dark:text-gray-400 text-xs">{pct}%</td>
                   </tr>
                 );
@@ -196,7 +196,7 @@ export default function SpendAnalysisSection() {
       {drillCat && (
         <>
           <SectionTitle action={<button onClick={() => setDrillCat(null)} className="text-xs text-clay hover:underline">✕ Clear</button>}>
-            {drillCat} — detailed view
+            {drillCat} - detailed view
           </SectionTitle>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
             <Card>
@@ -220,8 +220,8 @@ export default function SpendAnalysisSection() {
                   {drillData.slice(0, 8).map(e => (
                     <tr key={e.id}>
                       <td className="mono text-inkMuted dark:text-gray-400 text-xs whitespace-nowrap">{e.date}</td>
-                      <td className="text-ink dark:text-gray-200 text-[12.5px]">{cleanDescription(e.description) || '—'}</td>
-                      <td className="text-inkMuted dark:text-gray-500 text-xs">{e.notes || '—'}</td>
+                      <td className="text-ink dark:text-gray-200 text-[12.5px]">{cleanDescription(e.description) || '-'}</td>
+                      <td className="text-inkMuted dark:text-gray-500 text-xs">{e.notes || '-'}</td>
                       <td className="num font-mono">{fmtINR(e.amount)}</td>
                     </tr>
                   ))}
@@ -269,7 +269,7 @@ export default function SpendAnalysisSection() {
       </Card>
 
       {/* Calendar heatmap */}
-      <SectionTitle>Spend calendar — {monthLabel(thisMonth)}</SectionTitle>
+      <SectionTitle>Spend calendar - {monthLabel(thisMonth)}</SectionTitle>
       <Card className="mb-5">
         <div className="grid grid-cols-7 gap-1 mb-2">
           {DAY_NAMES.map(d => <div key={d} className="text-[10px] text-center text-inkMuted dark:text-gray-500 font-mono">{d}</div>)}

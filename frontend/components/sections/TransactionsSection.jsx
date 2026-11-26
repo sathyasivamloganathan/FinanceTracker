@@ -164,7 +164,7 @@ export default function TransactionsSection() {
       <div className="flex items-center justify-between mb-2">
         <span className="text-inkMuted dark:text-gray-400 text-[12.5px]">
           {allFiltered.length} transaction{allFiltered.length !== 1 ? "s" : ""}
-          {totalPages > 1 && ` — page ${page} of ${totalPages}`}
+          {totalPages > 1 && ` - page ${page} of ${totalPages}`}
         </span>
       </div>
 
@@ -295,11 +295,11 @@ export default function TransactionsSection() {
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editingId ? `Edit — ${form.name}` : "Log a transaction"}
+        title={editingId ? `Edit - ${form.name}` : "Log a transaction"}
       >
         {editingId && (
           <p className="text-[12px] text-inkMuted mb-3">
-            Instrument, type, and asset class can't be changed — delete and
+            Instrument, type, and asset class can't be changed - delete and
             re-add if needed.
           </p>
         )}

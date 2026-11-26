@@ -50,7 +50,7 @@ router.post('/test-email', makeSensitiveLimiter(3), asyncHandler(async (req, res
   try {
     await sendMail({
       to: req.user.email,
-      subject: 'Vantage — test e-mail',
+      subject: 'FinanceTracer - test e-mail',
       html: wrap(`<h2>E-mail is working ✓</h2><p>Sent to ${esc(req.user.email)}.</p>`),
       text: 'E-mail is working.',
     });

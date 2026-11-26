@@ -15,7 +15,7 @@ function pastOrToday(v) {
   return d;
 }
 
-// One snapshot per calendar date — saving again for the same date replaces it.
+// One snapshot per calendar date - saving again for the same date replaces it.
 function upsert(user, snap) {
   const existing = user.netWorthSnapshots.filter((s) => s.date === snap.date);
   existing.forEach((s) => user.netWorthSnapshots.pull({ _id: s._id }));

@@ -11,10 +11,10 @@ const plexSans = IBM_Plex_Sans({ subsets: ['latin'], weight: ['400', '500', '600
 const plexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-plex-mono' });
 
 export const metadata = {
-  title: 'Vantage — Personal Finance Command Center',
-  description: 'Track net worth, holdings, allocation, daily spends, and insurance — privately.',
+  title: 'FinanceTracer - Personal Finance Command Center',
+  description: 'Track net worth, holdings, allocation, daily spends, and insurance - privately.',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Vantage' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'FinanceTracer' },
 };
 
 export const viewport = {
@@ -24,7 +24,7 @@ export const viewport = {
 };
 
 // Applies the cached theme before first paint (no flash of light mode).
-const THEME_SCRIPT = "try{if(localStorage.getItem('vantage-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}";
+const THEME_SCRIPT = "try{if(localStorage.getItem('FinanceTracer-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}";
 
 export default function RootLayout({ children }) {
   return (

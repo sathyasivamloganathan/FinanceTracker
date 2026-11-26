@@ -5,10 +5,10 @@ import { usePrivacy } from '@/lib/PrivacyContext';
 
 // A number input that stays in sync with an external value (e.g. after a
 // server round-trip updates it) while still letting you type freely without
-// the cursor jumping — and reliably commits on blur/Enter.
+// the cursor jumping - and reliably commits on blur/Enter.
 //
 // When privacy mode is on, this renders as a masked, non-editable field
-// instead — editing while a value is hidden would either show the real
+// instead - editing while a value is hidden would either show the real
 // number while typing (defeating the point) or require awkward blind
 // editing, so it just asks you to reveal amounts first via the eye toggle.
 export default function EditableNumber({ value, onCommit, className, step = '0.01', maskable = true }) {
@@ -22,7 +22,7 @@ export default function EditableNumber({ value, onCommit, className, step = '0.0
 
   async function commit() {
     focused.current = false;
-    // A blank field must never be committed as 0 (that silently wiped values) — revert instead.
+    // A blank field must never be committed as 0 (that silently wiped values) - revert instead.
     if (local.trim() === '' || !Number.isFinite(Number(local))) {
       setLocal(String(value ?? ''));
       return;
@@ -37,7 +37,7 @@ export default function EditableNumber({ value, onCommit, className, step = '0.0
     return (
       <span
         className={`${className} inline-flex items-center justify-end bg-stone-50 text-inkMuted cursor-not-allowed select-none`}
-        title="Hidden — tap the eye icon in the top bar to reveal and edit"
+        title="Hidden - tap the eye icon in the top bar to reveal and edit"
       >
         ••••••
       </span>

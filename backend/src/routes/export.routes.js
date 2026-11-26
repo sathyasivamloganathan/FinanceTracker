@@ -58,7 +58,7 @@ router.get('/expenses.csv', asyncHandler(async (req, res) => {
 // Full data export (portability / backup).
 router.get('/all.json', asyncHandler(async (req, res) => {
   const { id, ...data } = req.user.toSafeJSON();
-  res.setHeader('Content-Disposition', `attachment; filename="vantage-export-${todayStr()}.json"`);
+  res.setHeader('Content-Disposition', `attachment; filename="FinanceTracer-export-${todayStr()}.json"`);
   res.json({ exportedAt: new Date().toISOString(), ...data });
 }));
 

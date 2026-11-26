@@ -35,7 +35,7 @@ router.post('/', mutating(async (req, res) => {
   res.status(201).json(reply(req.user));
 }));
 
-// Quick inline update — also records today's snapshot so history builds itself.
+// Quick inline update - also records today's snapshot so history builds itself.
 router.patch('/:id', mutating(async (req, res) => {
   V.objectId(req.params.id);
   const asset = req.user.otherAssets.id(req.params.id);

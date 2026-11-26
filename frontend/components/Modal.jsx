@@ -10,6 +10,11 @@ const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:n
 export default function Modal({ open, onClose, title, children }) {
   const ref = useRef(null);
   const titleId = useId();
+  // Parents pass a new inline onClose on every render (every keystroke). Keep it
+  // in a ref so the effect below runs ONLY when the dialog opens/closes —
+  // otherwise it re-ran on each keystroke and moved focus to the first field.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
 
   useEffect(() => {
     if (!open) return undefined;
@@ -20,7 +25,7 @@ export default function Modal({ open, onClose, title, children }) {
     (first || node)?.focus();
 
     function onKey(e) {
-      if (e.key === 'Escape') { e.stopPropagation(); onClose?.(); return; }
+      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current?.(); return; }
       if (e.key !== 'Tab') return;
       const list = items();
       if (!list.length) { e.preventDefault(); return; }
@@ -30,7 +35,7 @@ export default function Modal({ open, onClose, title, children }) {
     }
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('keydown', onKey); previous?.focus?.(); };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   return (

@@ -27,7 +27,7 @@ async function release(name) {
 async function runExclusive(name, fn, ttlMs = 60 * 60 * 1000) {
   let got = false;
   try { got = await acquire(name, ttlMs); } catch (e) { console.error(`[jobs] lock ${name} failed:`, e.message); return; }
-  if (!got) { console.log(`[jobs] ${name}: another instance is running it — skipped`); return; }
+  if (!got) { console.log(`[jobs] ${name}: another instance is running it - skipped`); return; }
   const t0 = Date.now();
   try {
     await fn();

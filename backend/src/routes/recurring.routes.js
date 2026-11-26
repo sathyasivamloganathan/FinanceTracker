@@ -67,7 +67,7 @@ router.delete('/:id', mutating(async (req, res) => {
 }));
 
 // Create every entry that is due (includes the start date itself) and apply
-// it to the linked bank account — same code path as the nightly job.
+// it to the linked bank account - same code path as the nightly job.
 router.post('/generate', mutating(async (req, res) => {
   const generated = generateRecurringForUser(req.user, todayStr());
   if (req.user.isModified()) await req.user.save();

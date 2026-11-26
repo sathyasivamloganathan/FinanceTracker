@@ -37,7 +37,7 @@ async function fetchStockPrice(symbol) {
   const y = normalizeStockSymbol(symbol);
   const data = await getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(y)}`, { 'User-Agent': 'Mozilla/5.0' });
   const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-  if (!validPrice(price)) throw new Error(`No valid price for "${y}" — check it is a real NSE/BSE ticker`);
+  if (!validPrice(price)) throw new Error(`No valid price for "${y}" - check it is a real NSE/BSE ticker`);
   return price;
 }
 
@@ -52,7 +52,7 @@ async function fetchMutualFundNavByCode(code) {
 const mfSearchCache = new Map();
 const tokens = (s) => String(s).toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter((t) => t.length >= 3 && !['fund', 'the', 'and', 'plan', 'option'].includes(t));
 
-// Match by name — but ONLY accept schemes whose name contains every
+// Match by name - but ONLY accept schemes whose name contains every
 // significant word of the holding's name, so we never price the wrong fund.
 async function searchMutualFundCode(name) {
   const key = name.trim().toLowerCase();
@@ -63,7 +63,7 @@ async function searchMutualFundCode(name) {
     const have = String(r.schemeName).toLowerCase();
     return want.length > 0 && want.every((t) => have.includes(t));
   });
-  if (!ok.length) throw new Error(`No confident match for "${name}" — enter the AMFI scheme code in the Symbol field`);
+  if (!ok.length) throw new Error(`No confident match for "${name}" - enter the AMFI scheme code in the Symbol field`);
   const best = ok.find((r) => /direct/i.test(r.schemeName) && /growth/i.test(r.schemeName))
     || ok.find((r) => /direct/i.test(r.schemeName)) || ok[0];
   const match = { code: String(best.schemeCode), matchedName: best.schemeName };
@@ -78,7 +78,7 @@ function navAgeDays(d) {
   return Math.floor((Date.now() - Date.UTC(+m[3], +m[2] - 1, +m[1])) / 86400000);
 }
 
-// Network lookup only — no mutation. Returns { price, symbolToStore?, note? }.
+// Network lookup only - no mutation. Returns { price, symbolToStore?, note? }.
 async function lookup(h) {
   if (h.assetType === 'Stock') return { price: await fetchStockPrice(h.symbol) };
   const code = h.symbol && /^\d+$/.test(h.symbol.trim()) ? { code: h.symbol.trim(), matchedName: null } : await searchMutualFundCode(h.name);
@@ -101,7 +101,7 @@ function applyResult(h, result, err) {
   const notes = result.note ? [result.note] : [];
   if (prev > 0) {
     const move = Math.abs(result.price - prev) / prev * 100;
-    if (move > 50) notes.push(`⚠ price moved ${move.toFixed(0)}% — check for a split/bonus`);
+    if (move > 50) notes.push(`⚠ price moved ${move.toFixed(0)}% - check for a split/bonus`);
   }
   h.currentRate = result.price;
   if (result.symbolToStore && h.symbol !== result.symbolToStore) h.symbol = result.symbolToStore;

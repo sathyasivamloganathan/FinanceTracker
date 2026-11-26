@@ -1,7 +1,7 @@
 // Mongoose subdocuments come back with `_id`, not `id`. The frontend
 // standardizes on `id` everywhere. This serializer handles nested arrays
 // (e.g. otherAssets[].history[]) so every subdoc at every depth gets a
-// proper `id` field — this was the cause of the "Cast to ObjectId failed
+// proper `id` field - this was the cause of the "Cast to ObjectId failed
 // for value undefined" errors on delete/edit of nested items.
 
 function serializeDoc(doc) {

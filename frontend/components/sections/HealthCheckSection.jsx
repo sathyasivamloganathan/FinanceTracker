@@ -88,7 +88,7 @@ export default function HealthCheckSection() {
   return (
     <>
       <p className="text-inkMuted text-[13.5px] max-w-xl mb-4">
-        Pulled from what you've already tracked — your average monthly spend (months with something logged), liquid cash, and net
+        Pulled from what you've already tracked - your average monthly spend (months with something logged), liquid cash, and net
         worth. Date of birth and income are the only two things you enter here.
       </p>
 
@@ -143,7 +143,7 @@ export default function HealthCheckSection() {
                 At this rate, roughly <b>{years}</b> years to financial independence (25× annual expenses, common FIRE rule of thumb).
               </div>
             )}
-            <p className="text-inkMuted text-xs mt-3">Try to save at least 20% of income — cut discretionary spending first if you're below that.</p>
+            <p className="text-inkMuted text-xs mt-3">Try to save at least 20% of income - cut discretionary spending first if you're below that.</p>
           </>
         ) : (
           <p className="text-inkMuted text-[13px]">Enter your monthly income above to see this.</p>
@@ -152,17 +152,17 @@ export default function HealthCheckSection() {
 
       <SectionTitle>Recommended insurance cover</SectionTitle>
       <Card className="mb-5">
-        <div className="font-mono text-[10.5px] uppercase tracking-wide text-inkMuted mb-1">Term life — rule of thumb</div>
+        <div className="font-mono text-[10.5px] uppercase tracking-wide text-inkMuted mb-1">Term life - rule of thumb</div>
         <div className="font-display font-semibold text-[22px]">
           {idealTermCover === null ? <span className="text-[13px] text-inkMuted font-normal">Add your monthly income above to estimate this.</span> : <Amount>{fmtINR(idealTermCover)}</Amount>}
         </div>
         <div className="text-inkMuted text-xs mt-1">Rule of thumb: 10 × annual income + loans − assets you already hold</div>
         <div className="mt-4 pt-4 border-t border-line">
-          <div className="font-mono text-[10.5px] uppercase tracking-wide text-inkMuted mb-1">Health cover — general guidance</div>
+          <div className="font-mono text-[10.5px] uppercase tracking-wide text-inkMuted mb-1">Health cover - general guidance</div>
           <div className="text-[13px]">Minimum ₹5L, ideally ₹10L+ per person, more in metro cities or with dependents.</div>
         </div>
         <p className="text-inkMuted text-xs mt-3">
-          Check what you actually have under More → Insurance and compare — these are generic rules of thumb, not personalised
+          Check what you actually have under More → Insurance and compare - these are generic rules of thumb, not personalised
           advice.
         </p>
       </Card>
@@ -178,7 +178,7 @@ export default function HealthCheckSection() {
           <Amount>{fmtINR(liabilities)}</Amount> owed vs <Amount>{fmtINR(assets)}</Amount> in assets
         </div>
         <p className="text-inkMuted text-xs mt-3">
-          {liabilities === 0 ? 'No liabilities tracked — nothing to worry about here.' : 'Generally, under 30% is comfortable; above 50% is worth a closer look.'}
+          {liabilities === 0 ? 'No liabilities tracked - nothing to worry about here.' : 'Generally, under 30% is comfortable; above 50% is worth a closer look.'}
         </p>
       </Card>
     </>

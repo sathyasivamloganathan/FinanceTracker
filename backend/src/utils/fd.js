@@ -7,8 +7,8 @@ const { HttpError } = require('./validate');
 // Close an active FD.
 //  • at/after maturity: pays maturityAmount (or renews it if autoRenew)
 //  • before maturity ({ early: true }): pays the value accrued so far, status 'broken'
-// Money always lands somewhere: the linked bank account, or — if none is
-// linked — a "Cash" asset, so net worth never silently drops.
+// Money always lands somewhere: the linked bank account, or - if none is
+// linked - a "Cash" asset, so net worth never silently drops.
 function closeFd(user, fd, today, { early = false } = {}) {
   if (fd.status !== 'active') throw new HttpError(409, 'Only active FDs can be closed');
 
@@ -47,7 +47,7 @@ function credit(user, fd, amount, today, label) {
     acct.updatedAt = today;
   } else {
     user.otherAssets.push({
-      category: 'Cash', name: `${label} FD — ${fd.bankName}`, amount, updatedAt: today,
+      category: 'Cash', name: `${label} FD - ${fd.bankName}`, amount, updatedAt: today,
       history: [{ date: today, amount }],
     });
   }

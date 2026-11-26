@@ -442,7 +442,7 @@ export default function FDSection() {
                 setForm({ ...form, creditToAccountId: e.target.value })
               }
             >
-              <option value="">— Don't auto-credit —</option>
+              <option value="">- Don't auto-credit -</option>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}

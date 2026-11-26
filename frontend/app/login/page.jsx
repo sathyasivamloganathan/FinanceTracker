@@ -8,7 +8,7 @@ import GoogleButton from '@/components/GoogleButton';
 import AuthCard from '@/components/AuthCard';
 
 const URL_ERRORS = {
-  google_auth_failed: 'Google sign-in failed — please try again, or use email and password.',
+  google_auth_failed: 'Google sign-in failed - please try again, or use email and password.',
   google_email_unverified: 'Your Google account’s e-mail address is not verified, so it can’t be used to sign in.',
 };
 

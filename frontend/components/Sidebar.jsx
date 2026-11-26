@@ -14,7 +14,7 @@ export default function Sidebar() {
       <div className="px-6 pb-5 mb-2.5 border-b border-white/10 flex items-center gap-2.5">
         <Logo size={28} />
         <div>
-          <div className="font-display font-bold text-[19px] text-white leading-tight tracking-tight">Vantage</div>
+          <div className="font-display font-bold text-[19px] text-white leading-tight tracking-tight">FinanceTracer</div>
         </div>
       </div>
       <nav className="flex-1 px-3 flex flex-col gap-0.5">

@@ -123,7 +123,7 @@ export default function NetWorthSection() {
           <div className="grid grid-cols-2 gap-3 mb-4">
             <StatCard
               label="Growth since first snapshot"
-              value={growth === null ? "—" : <Amount>{fmtINR(growth)}</Amount>}
+              value={growth === null ? "-" : <Amount>{fmtINR(growth)}</Amount>}
               delta={
                 growthPct === null
                   ? "Take more snapshots to compare"
@@ -134,7 +134,7 @@ export default function NetWorthSection() {
             <StatCard
               label="Snapshots"
               value={String(snapshots.length)}
-              delta={`since ${first?.date || "—"}`}
+              delta={`since ${first?.date || "-"}`}
               deltaClass="text-inkMuted dark:text-gray-400"
             />
           </div>

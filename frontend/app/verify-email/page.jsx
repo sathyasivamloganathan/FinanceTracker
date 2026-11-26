@@ -23,8 +23,8 @@ export default function VerifyEmailPage() {
   return (
     <AuthCard>
       {status === 'working' && <p className="text-[13px] text-inkMuted" role="status">Verifying your e-mail…</p>}
-      {status === 'ok' && <p className="text-[13px]" role="status">Your e-mail address is verified. <Link href="/" className="text-accent font-semibold">Continue to Vantage</Link></p>}
-      {status === 'error' && <p className="text-clay text-[13px]" role="alert">{message} <Link href="/" className="text-accent font-semibold">Go to Vantage</Link> and use “Resend verification” in the banner.</p>}
+      {status === 'ok' && <p className="text-[13px]" role="status">Your e-mail address is verified. <Link href="/" className="text-accent font-semibold">Continue to FinanceTracer</Link></p>}
+      {status === 'error' && <p className="text-clay text-[13px]" role="alert">{message} <Link href="/" className="text-accent font-semibold">Go to FinanceTracer</Link> and use “Resend verification” in the banner.</p>}
     </AuthCard>
   );
 }

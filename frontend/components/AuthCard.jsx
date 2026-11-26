@@ -6,7 +6,7 @@ export default function AuthCard({ subtitle, children }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-paper px-4">
       <div className="w-full max-w-sm bg-paperCard border border-line rounded-card shadow-card p-7">
-        <div className="flex items-center gap-2.5 mb-1"><Logo size={30} /><span className="font-display font-bold text-[22px] text-ink">Vantage</span></div>
+        <div className="flex items-center gap-2.5 mb-1"><Logo size={30} /><span className="font-display font-bold text-[22px] text-ink">FinanceTracer</span></div>
         {subtitle && <p className="text-inkMuted text-[13px] mb-6">{subtitle}</p>}
         {children}
       </div>

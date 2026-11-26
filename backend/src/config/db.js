@@ -18,7 +18,7 @@ function attachListeners() {
   if (listenersAttached) return;
   listenersAttached = true;
   mongoose.connection.on('error', (err) => console.error('[db] connection error:', err.message));
-  mongoose.connection.on('disconnected', () => console.warn('[db] disconnected — driver will reconnect'));
+  mongoose.connection.on('disconnected', () => console.warn('[db] disconnected - driver will reconnect'));
   mongoose.connection.on('reconnected', () => console.log('[db] reconnected'));
 }
 

@@ -91,7 +91,7 @@ export default function InsightsSection() {
   return (
     <>
       <p className="text-inkMuted text-[13.5px] max-w-xl mb-5">
-        A single view across everything you've tracked — portfolio performance, spending trends, and where your allocation has
+        A single view across everything you've tracked - portfolio performance, spending trends, and where your allocation has
         drifted.
       </p>
 
@@ -230,7 +230,7 @@ export default function InsightsSection() {
                   <td>
                     <Tag>{e.category}</Tag>
                   </td>
-                  <td>{cleanDescription(e.description) || '—'}</td>
+                  <td>{cleanDescription(e.description) || '-'}</td>
                   <td className="num">
                     <Amount>{fmtINR(e.amount)}</Amount>
                   </td>

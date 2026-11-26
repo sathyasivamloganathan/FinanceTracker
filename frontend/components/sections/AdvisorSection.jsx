@@ -44,30 +44,30 @@ export default function AdvisorSection() {
 
     const rows = [];
     let allocScore = 0;
-    let allocNote = `Close to your target allocation for ${category} — no rebalancing pressure either way.`;
+    let allocNote = `Close to your target allocation for ${category} - no rebalancing pressure either way.`;
     if (drift > 5) {
       allocScore = -2;
-      allocNote = `You're already overweight ${category} by ${drift.toFixed(1)} points vs target — leans toward trimming or holding off on adding.`;
+      allocNote = `You're already overweight ${category} by ${drift.toFixed(1)} points vs target - leans toward trimming or holding off on adding.`;
     } else if (drift < -5) {
       allocScore = 2;
-      allocNote = `You're underweight ${category} by ${Math.abs(drift).toFixed(1)} points vs target — there's room to add here.`;
+      allocNote = `You're underweight ${category} by ${Math.abs(drift).toFixed(1)} points vs target - there's room to add here.`;
     }
     rows.push({ name: 'Allocation vs your target', score: allocScore, note: allocNote });
 
     let plScore = 0;
     let plNote = avgNum
       ? `Roughly flat vs the buy price you entered (${fmtPct(gainPct)}).`
-      : "No buy price entered — you're evaluating this as a fresh potential purchase, so this factor is skipped.";
+      : "No buy price entered - you're evaluating this as a fresh potential purchase, so this factor is skipped.";
     if (avgNum > 0) {
       const damp = horizon === 'long' ? 0.6 : 1;
       if (gainPct <= -15) {
         plScore = Math.round(-1 * damp) || -1;
-        plNote = `Down ${fmtPct(gainPct)} from that buy price — worth re-checking your thesis before adding more.${
+        plNote = `Down ${fmtPct(gainPct)} from that buy price - worth re-checking your thesis before adding more.${
           horizon === 'long' ? ' Weighted down a little since you flagged this as long-term.' : ''
         }`;
       } else if (gainPct >= 30) {
         plScore = -1;
-        plNote = `Up ${fmtPct(gainPct)} — a reasonable point to consider booking some profit.`;
+        plNote = `Up ${fmtPct(gainPct)} - a reasonable point to consider booking some profit.`;
       }
     }
     rows.push({ name: 'Price vs your buy price', score: plScore, note: plNote });
@@ -94,9 +94,9 @@ export default function AdvisorSection() {
         <b>Not investment advice.</b> This is a simple rule-based checklist built only from your own numbers; it is not a recommendation
         from a SEBI-registered adviser. Do your own research or consult a licensed adviser before buying or selling.
         <br />
-        Works on anything, not just what you already hold — type a name and prices in yourself (or pick an existing holding to
+        Works on anything, not just what you already hold - type a name and prices in yourself (or pick an existing holding to
         prefill). It weighs only two things: whether this category is over/under-weight against your allocation targets, and how
-        the price compares to what you paid, if anything. No valuation/trend/fundamentals guessing — ask in chat if you want an
+        the price compares to what you paid, if anything. No valuation/trend/fundamentals guessing - ask in chat if you want an
         actual researched take on a specific stock.
       </div>
 
@@ -104,7 +104,7 @@ export default function AdvisorSection() {
         {state.holdings.length > 0 && (
           <Field label="Prefill from an existing holding (optional)">
             <select className={inputClass} onChange={(e) => prefill(e.target.value)} defaultValue="">
-              <option value="">— None, I&apos;ll enter my own —</option>
+              <option value="">- None, I&apos;ll enter my own -</option>
               {state.holdings.map((h) => (
                 <option key={h.id} value={h.id}>
                   {h.name} ({h.assetType})

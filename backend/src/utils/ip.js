@@ -5,7 +5,7 @@ const net = require('net');
 // different "IP" on every connection and sail past per-IP limits. Normalise:
 //  • strip :port from IPv4 and from [IPv6]:port
 //  • unwrap IPv4-mapped IPv6 (::ffff:1.2.3.4)
-//  • collapse IPv6 to its /64 — one household/host owns a whole /64, so
+//  • collapse IPv6 to its /64 - one household/host owns a whole /64, so
 //    counting individual addresses would be trivial to evade.
 function normalizeIp(raw) {
   let ip = String(raw || '').trim();

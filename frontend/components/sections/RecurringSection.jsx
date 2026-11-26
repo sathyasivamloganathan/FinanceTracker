@@ -61,7 +61,7 @@ export default function RecurringSection() {
       const r = await generateRecurring();
       if (r) {
         const n = r.generated?.length || 0;
-        setGenerated(n ? `Done — ${n} entr${n === 1 ? 'y' : 'ies'} added to your spends.` : 'Nothing is due right now.');
+        setGenerated(n ? `Done - ${n} entr${n === 1 ? 'y' : 'ies'} added to your spends.` : 'Nothing is due right now.');
       }
     } finally { setGenerating(false); }
   }
@@ -71,7 +71,7 @@ export default function RecurringSection() {
   return (
     <>
       <p className="text-inkMuted dark:text-gray-400 text-[13.5px] max-w-2xl mb-5">
-        Set up rent, SIPs, salary, EMIs, and subscriptions once — they get logged automatically. Tap <b>Generate now</b> anytime to create due entries, or let the daily cron do it automatically.
+        Set up rent, SIPs, salary, EMIs, and subscriptions once - they get logged automatically. Tap <b>Generate now</b> anytime to create due entries, or let the daily cron do it automatically.
       </p>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
@@ -123,7 +123,7 @@ export default function RecurringSection() {
                   </span>
                   <div className="text-right">
                     <div className="text-[10px] text-inkMuted dark:text-gray-500">Next due</div>
-                    <div className="text-[12px] font-mono text-ink dark:text-gray-300">{r.active ? (due || "—") : '—'}</div>
+                    <div className="text-[12px] font-mono text-ink dark:text-gray-300">{r.active ? (due || "-") : '-'}</div>
                   </div>
                 </div>
                 {r.endDate && <div className="text-[11px] text-inkMuted dark:text-gray-500 mt-1">Ends {r.endDate}</div>}
@@ -178,7 +178,7 @@ export default function RecurringSection() {
         <div className="grid grid-cols-2 gap-3 mb-3">
           <Field label="Account (optional)">
             <select className={inputClass} value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })}>
-              <option value="">— No account —</option>
+              <option value="">- No account -</option>
               {bankAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </Field>

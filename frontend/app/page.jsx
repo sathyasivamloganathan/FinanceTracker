@@ -63,15 +63,15 @@ export default function OverviewPage() {
           value={<Amount><span className={pl >= 0 ? 'text-emerald' : 'text-clay'}>{pl >= 0 ? '+' : ''}{fmtINR(pl)}</span></Amount>}
           delta={investedCost ? `${pl >= 0 ? '+' : ''}${((pl / investedCost) * 100).toFixed(1)}%` : ''}
           deltaClass={pl >= 0 ? 'text-emerald' : 'text-clay'} />
-        <StatCard label={`Spent — ${monthLabel(mk).slice(0,3)}`} value={<Amount>{fmtINR(totalSpend)}</Amount>} />
-        <StatCard label={`Income — ${monthLabel(mk).slice(0,3)}`} value={<Amount><span className="text-emerald">{fmtINR(totalIncome)}</span></Amount>} />
+        <StatCard label={`Spent - ${monthLabel(mk).slice(0,3)}`} value={<Amount>{fmtINR(totalSpend)}</Amount>} />
+        <StatCard label={`Income - ${monthLabel(mk).slice(0,3)}`} value={<Amount><span className="text-emerald">{fmtINR(totalIncome)}</span></Amount>} />
       </div>
 
       {/* Portfolio breakdown row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <StatCard label="Bank accounts" value={<Amount>{fmtINR(bankTotal)}</Amount>} />
         <StatCard label="Fixed deposits" value={<Amount>{fmtINR(totalFD)}</Amount>} />
-        <StatCard label="Top category" value={topCat ? topCat[0] : '—'} delta={topCat ? fmtINR(topCat[1]) : ''} deltaClass="text-inkMuted dark:text-gray-400" />
+        <StatCard label="Top category" value={topCat ? topCat[0] : '-'} delta={topCat ? fmtINR(topCat[1]) : ''} deltaClass="text-inkMuted dark:text-gray-400" />
         {dueSoon.length > 0
           ? <StatCard label="Renewals due soon" value={String(dueSoon.length)} delta="View in More → Insurance" deltaClass="text-warn" />
           : <StatCard label="Holdings" value={String(state.holdings.length)} delta="View in Wealth" deltaClass="text-inkMuted dark:text-gray-400" />

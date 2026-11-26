@@ -29,6 +29,11 @@ function loadConfig(env = process.env) {
   const frontendUrl = (env.FRONTEND_URL || (prod ? '' : 'http://localhost:3000')).replace(/\/+$/, '');
   if (prod && !frontendUrl) errors.push('FRONTEND_URL must be set in production');
 
+  const cronSecret = env.CRON_SECRET || '';
+  if (cronSecret && (cronSecret.length < 24 || PLACEHOLDER.test(cronSecret))) {
+    errors.push('CRON_SECRET must be at least 24 random characters (or leave it unset to disable /api/cron)');
+  }
+
   const sameSite = (env.COOKIE_SAMESITE || 'lax').toLowerCase();
   if (!['lax', 'strict', 'none'].includes(sameSite)) errors.push('COOKIE_SAMESITE must be lax, strict or none');
   if (sameSite === 'none' && !prod) errors.push('COOKIE_SAMESITE=none requires HTTPS (NODE_ENV=production)');
@@ -54,7 +59,7 @@ function loadConfig(env = process.env) {
   const emailConfigured = !!env.EMAIL_USER && !PLACEHOLDER.test(env.EMAIL_USER) && !!env.EMAIL_PASS && !PLACEHOLDER.test(env.EMAIL_PASS);
 
   return {
-    nodeEnv, prod, jwtSecret,
+    nodeEnv, prod, jwtSecret, cronSecret,
     port: Number(env.PORT) || 4000,
     clientOrigins, frontendUrl,
     cookie: {

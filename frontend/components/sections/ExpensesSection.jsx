@@ -165,7 +165,7 @@ export default function ExpensesSection() {
   }
 
   // Deleting refunds the bank balance on the server, so Undo (re-adding the
-  // identical entry) deducts it again — net effect zero, as it should be.
+  // identical entry) deducts it again - net effect zero, as it should be.
   async function handleDelete(e) {
     const snapshot = { ...e };
     const ok = await deleteExpense(e.id);
@@ -258,7 +258,7 @@ export default function ExpensesSection() {
 
         <StatCard
           label="Top spend category"
-          value={topCat ? topCat[0] : "—"}
+          value={topCat ? topCat[0] : "-"}
           delta={topCat ? fmtINR(topCat[1]) : ""}
           deltaClass="text-inkMuted dark:text-gray-400"
         />
@@ -267,7 +267,7 @@ export default function ExpensesSection() {
           label="vs last month"
           value={
             diff === 0
-              ? "—"
+              ? "-"
               : `${diff > 0 ? "▲" : "▼"} ${fmtINR(Math.abs(diff))}`
           }
           deltaClass={diff > 0 ? "text-clay" : "text-emerald"}
@@ -495,7 +495,7 @@ export default function ExpensesSection() {
       </div>
 
       <SectionTitle>
-        {monthLabel(selectedMonth)} — {filteredRows.length} entr
+        {monthLabel(selectedMonth)} - {filteredRows.length} entr
         {filteredRows.length === 1 ? "y" : "ies"}
       </SectionTitle>
 
@@ -534,7 +534,7 @@ export default function ExpensesSection() {
                     </td>
                     <td className="text-ink dark:text-gray-200 max-w-[140px] text-[12.5px]">
                       {cleanDescription(e.description) || (
-                        <span className="text-inkMuted">—</span>
+                        <span className="text-inkMuted">-</span>
                       )}
                     </td>
                     <td>
@@ -550,12 +550,12 @@ export default function ExpensesSection() {
                         </span>
                       ) : (
                         <span className="text-inkMuted dark:text-gray-600 text-xs">
-                          —
+                          -
                         </span>
                       )}
                     </td>
                     <td className="text-inkMuted dark:text-gray-500 text-xs max-w-[100px]">
-                      {e.notes || "—"}
+                      {e.notes || "-"}
                     </td>
                     <td
                       className={`num font-mono ${isIncome ? "text-emerald" : "text-ink dark:text-gray-100"}`}
@@ -695,7 +695,7 @@ export default function ExpensesSection() {
               value={form.accountId}
               onChange={(e) => setForm({ ...form, accountId: e.target.value })}
             >
-              <option value="">— No account —</option>
+              <option value="">- No account -</option>
               {bankAccounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}

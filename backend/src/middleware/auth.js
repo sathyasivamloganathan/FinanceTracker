@@ -16,20 +16,20 @@ async function requireAuth(req, res, next) {
       payload = verifyToken(token);
     } catch {
       clearAuthCookie(res);
-      return res.status(401).json({ error: 'Session expired — please log in again' });
+      return res.status(401).json({ error: 'Session expired - please log in again' });
     }
     if (!payload || typeof payload.sub !== 'string' || !isObjectId(payload.sub)) {
       clearAuthCookie(res);
       return res.status(401).json({ error: 'Invalid session' });
     }
 
-    // NOTE: __v is intentionally NOT excluded — Mongoose's optimistic
+    // NOTE: __v is intentionally NOT excluded - Mongoose's optimistic
     // concurrency check on array writes depends on it.
     const user = await User.findById(payload.sub);
     if (!user) { clearAuthCookie(res); return res.status(401).json({ error: 'Account not found' }); }
     if ((payload.tv ?? 0) !== (user.tokenVersion ?? 0)) {
       clearAuthCookie(res);
-      return res.status(401).json({ error: 'Session expired — please log in again' });
+      return res.status(401).json({ error: 'Session expired - please log in again' });
     }
 
     req.user = user;

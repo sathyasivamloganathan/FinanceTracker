@@ -30,9 +30,9 @@ function applyTx(user, tx, { today } = {}) {
     if (!h.symbol && tx.symbol) h.symbol = tx.symbol.toUpperCase();
     h.updatedAt = today;
   } else {
-    if (!h) throw new HttpError(409, `You don't hold "${tx.name}" — nothing to sell`);
+    if (!h) throw new HttpError(409, `You don't hold "${tx.name}" - nothing to sell`);
     if (qty > (Number(h.qty) || 0) + EPS) {
-      throw new HttpError(409, `Cannot sell ${qty} of "${tx.name}" — only ${h.qty} held`);
+      throw new HttpError(409, `Cannot sell ${qty} of "${tx.name}" - only ${h.qty} held`);
     }
     h.qty = Math.max(0, r6((Number(h.qty) || 0) - qty));
     h.updatedAt = today; // average cost is unchanged by a sale

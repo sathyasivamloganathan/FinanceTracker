@@ -71,7 +71,7 @@ export default function InsuranceSection() {
   return (
     <>
       <p className="text-inkMuted text-[13.5px] max-w-xl mb-4">
-        Premiums and coverage change at renewal — use the pencil icon to update an existing policy instead of adding a duplicate.
+        Premiums and coverage change at renewal - use the pencil icon to update an existing policy instead of adding a duplicate.
       </p>
       {rows.length ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -83,7 +83,7 @@ export default function InsuranceSection() {
                   <div className="min-w-0">
                     <div className="font-display text-[17px] font-semibold truncate">{p.name}</div>
                     <div className="text-inkMuted text-xs truncate">
-                      {p.insurer || '—'} {p.policyNumber ? `· ${p.policyNumber}` : ''}
+                      {p.insurer || '-'} {p.policyNumber ? `· ${p.policyNumber}` : ''}
                     </div>
                   </div>
                   <div className="flex items-center shrink-0">
@@ -115,7 +115,7 @@ export default function InsuranceSection() {
                     </tr>
                     <tr>
                       <td className="text-inkMuted py-1">Renewal date</td>
-                      <td className="num mono">{p.dueDate || '—'}</td>
+                      <td className="num mono">{p.dueDate || '-'}</td>
                     </tr>
                   </tbody>
                 </table>

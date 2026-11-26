@@ -1,7 +1,7 @@
 {
-  "name": "Vantage — Personal Finance Desk",
-  "short_name": "Vantage",
-  "description": "Track net worth, holdings, allocation, daily spends, and insurance — privately.",
+  "name": "FinanceTracer - Personal Finance Desk",
+  "short_name": "FinanceTracer",
+  "description": "Track net worth, holdings, allocation, daily spends, and insurance - privately.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

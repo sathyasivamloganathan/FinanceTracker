@@ -18,7 +18,7 @@ const cell = 'padding:8px;border:1px solid #e2e2e2;';
 const row = (a, b) => `<tr><td style="${cell}">${esc(a)}</td><td style="${cell}text-align:right;">${esc(b)}</td></tr>`;
 const isSpend = (e) => e.expenseType === 'expense' || !e.expenseType;
 
-// Run fn for every user matching the query — one user at a time, each in its
+// Run fn for every user matching the query - one user at a time, each in its
 // own try/catch so a single bad document can never abort the whole job, and
 // without ever holding more than one user in memory.
 async function forEachUser(query, fn) {
@@ -56,7 +56,7 @@ async function processMatureFDs(today = todayStr()) {
     if (!info || !info.events.length || !canMail(info, 'reminders')) return;
     const lines = info.events.map((e) => e.kind === 'renewed'
       ? `${e.bank}: renewed automatically with ${fmtINR(e.amount)}`
-      : `${e.bank}: matured — ${fmtINR(e.amount)} credited`);
+      : `${e.bank}: matured - ${fmtINR(e.amount)} credited`);
     await sendAutomated(info, 'Your fixed deposit has matured',
       `<h2>Fixed deposit update</h2><ul>${lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`,
       lines.join('\n'));
@@ -85,7 +85,7 @@ async function sendDeadlineReminders(today = todayStr()) {
       return { due, email: user.email, name: user.name, _id: user._id, emailVerified: user.emailVerified, emailPrefs: user.emailPrefs };
     });
     if (!info || !info.due.length) return;
-    const lines = info.due.map((d) => `${d.name} — due ${d.next} (${d.daysLeft === 0 ? 'today' : `in ${d.daysLeft} day${d.daysLeft === 1 ? '' : 's'}`})${d.premium ? `, premium ${fmtINR(d.premium)}` : ''}`);
+    const lines = info.due.map((d) => `${d.name} - due ${d.next} (${d.daysLeft === 0 ? 'today' : `in ${d.daysLeft} day${d.daysLeft === 1 ? '' : 's'}`})${d.premium ? `, premium ${fmtINR(d.premium)}` : ''}`);
     await sendAutomated(info, 'Insurance premium reminder',
       `<h2>Upcoming premiums</h2><ul>${lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`, lines.join('\n'));
     await withUser(id, (user) => { info.due.forEach((d) => { const p = user.insurance.id(d.id); if (p) p.lastReminderSentAt = new Date(); }); });
@@ -180,7 +180,7 @@ function startCronJobs() {
   if (!getConfig().runJobs) { console.log('[jobs] disabled (RUN_JOBS=false)'); return; }
   const opts = { timezone: APP_TZ };
   tasks = [
-    cron.schedule('30 20 * * *', runPriceSync, opts),   // 20:30 — after market close
+    cron.schedule('30 20 * * *', runPriceSync, opts),   // 20:30 - after market close
     cron.schedule('0 8 * * *', runDailyJobs, opts),     // 08:00
     cron.schedule('5 8 * * 1', runWeeklyJobs, opts),    // Monday 08:05
   ];

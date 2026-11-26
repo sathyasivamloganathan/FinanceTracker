@@ -46,7 +46,7 @@ export default function GoalsSection() {
   return (
     <>
       <p className="text-inkMuted text-[13.5px] max-w-xl mb-4">
-        Progress is tracked against your current net worth. Mark a goal achieved once you hit it — that locks in the date and the
+        Progress is tracked against your current net worth. Mark a goal achieved once you hit it - that locks in the date and the
         net worth you reached it at, so it stays on record even if net worth moves around afterward.
       </p>
 
@@ -99,7 +99,7 @@ export default function GoalsSection() {
           })}
         </div>
       ) : (
-        <EmptyState title="No active goals">Set a target — retirement, a home, an emergency fund — and track progress against your net worth.</EmptyState>
+        <EmptyState title="No active goals">Set a target - retirement, a home, an emergency fund - and track progress against your net worth.</EmptyState>
       )}
 
       <div className="mt-4">
@@ -120,7 +120,7 @@ export default function GoalsSection() {
         Completed goals
       </SectionTitle>
       {completed.length === 0 ? (
-        <p className="text-inkMuted text-[13px]">Nothing here yet — goals you mark as achieved will show up as a record.</p>
+        <p className="text-inkMuted text-[13px]">Nothing here yet - goals you mark as achieved will show up as a record.</p>
       ) : showCompleted ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {completed.map((g) => (
@@ -155,7 +155,7 @@ export default function GoalsSection() {
         </div>
       ) : (
         <p className="text-inkMuted text-[13px]">
-          {completed.length} goal{completed.length === 1 ? '' : 's'} completed — tap &quot;Show&quot; above to see them.
+          {completed.length} goal{completed.length === 1 ? '' : 's'} completed - tap &quot;Show&quot; above to see them.
         </p>
       )}
 

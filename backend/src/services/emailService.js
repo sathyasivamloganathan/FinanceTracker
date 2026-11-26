@@ -25,7 +25,7 @@ const isEmailEnabled = () => getConfig().emailConfigured;
 // SMTP isn't configured.
 async function sendMail({ to, subject, html, text, headers }) {
   if (!isEmailEnabled()) {
-    console.warn(`[email] skipped "${subject}" — SMTP not configured`);
+    console.warn(`[email] skipped "${subject}" - SMTP not configured`);
     return { skipped: true };
   }
   return getTransport().sendMail({
@@ -43,7 +43,7 @@ function unsubscribeUrl(user) {
 function marketingParts(user) {
   const url = unsubscribeUrl(user);
   return {
-    footerHtml: `<p style="color:#9CA3AF;font-size:11px;margin-top:24px">You get this because e-mail updates are on for your Vantage account. <a href="${esc(url)}">Unsubscribe from all</a> or change this in Settings.</p>`,
+    footerHtml: `<p style="color:#9CA3AF;font-size:11px;margin-top:24px">You get this because e-mail updates are on for your FinanceTracer account. <a href="${esc(url)}">Unsubscribe from all</a> or change this in Settings.</p>`,
     footerText: `\n\nUnsubscribe from all: ${url}`,
     headers: { 'List-Unsubscribe': `<${url}>` },
   };
@@ -55,7 +55,7 @@ async function sendVerificationEmail(user, token) {
   const link = `${getConfig().frontendUrl}/verify-email?token=${encodeURIComponent(token)}`;
   return sendMail({
     to: user.email,
-    subject: 'Verify your Vantage e-mail address',
+    subject: 'Verify your FinanceTracer e-mail address',
     html: wrap(`<h2>Confirm your e-mail</h2><p>Hi ${esc(user.name)}, confirm this address to finish setting up your account. The link works for 24 hours.</p><p><a href="${esc(link)}" style="background:#2563EB;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Verify e-mail</a></p><p style="color:#6B7280;font-size:12px">If you didn't create an account, ignore this message.</p>`),
     text: `Confirm your e-mail: ${link}\n(valid for 24 hours)`,
   });
@@ -65,13 +65,13 @@ async function sendPasswordResetEmail(user, token) {
   const link = `${getConfig().frontendUrl}/reset-password?token=${encodeURIComponent(token)}`;
   return sendMail({
     to: user.email,
-    subject: 'Reset your Vantage password',
-    html: wrap(`<h2>Reset your password</h2><p>We received a request to reset the password for this account. The link works for 1 hour.</p><p><a href="${esc(link)}" style="background:#2563EB;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Choose a new password</a></p><p style="color:#6B7280;font-size:12px">If you didn't ask for this, you can ignore the message — your password has not changed.</p>`),
+    subject: 'Reset your FinanceTracer password',
+    html: wrap(`<h2>Reset your password</h2><p>We received a request to reset the password for this account. The link works for 1 hour.</p><p><a href="${esc(link)}" style="background:#2563EB;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Choose a new password</a></p><p style="color:#6B7280;font-size:12px">If you didn't ask for this, you can ignore the message - your password has not changed.</p>`),
     text: `Reset your password: ${link}\n(valid for 1 hour). If you didn't request this, ignore this message.`,
   });
 }
 
-// Connects and authenticates without sending anything — shows the REAL reason mail fails.
+// Connects and authenticates without sending anything - shows the REAL reason mail fails.
 async function verifySmtp() {
   if (!isEmailEnabled()) return { ok: false, error: 'EMAIL_USER / EMAIL_PASS are not set' };
   try { await getTransport().verify(); return { ok: true }; }

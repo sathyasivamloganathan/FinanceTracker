@@ -6,7 +6,7 @@
 export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
 
 const TIMEOUT_MS = 20000;
-export const UNAUTHORIZED_EVENT = 'vantage:unauthorized';
+export const UNAUTHORIZED_EVENT = 'FinanceTracer:unauthorized';
 
 async function request(path, options = {}) {
   const controller = new AbortController();
@@ -23,7 +23,7 @@ async function request(path, options = {}) {
   } catch (e) {
     const err = new Error(e && e.name === 'AbortError'
       ? 'The server took too long to respond. Please try again.'
-      : 'Network error — check your connection and try again.');
+      : 'Network error - check your connection and try again.');
     err.status = 0;
     throw err;
   } finally {

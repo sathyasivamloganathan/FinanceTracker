@@ -163,7 +163,7 @@ test('rate-limit key: ports stripped, IPv6 grouped by /64, distinct clients stay
   assert.equal(normalizeIp('::ffff:203.0.113.5'), '203.0.113.5');
   assert.equal(normalizeIp('[2001:db8:1:2:3:4:5:6]:443'), normalizeIp('2001:db8:1:2:ffff::1'));
   assert.notEqual(normalizeIp('2001:db8:1:2::1'), normalizeIp('2001:db8:1:3::1'));
-  // the old regex collapsed ALL of these to "2001:db8:" — distinct hosts in different /64s must differ now
+  // the old regex collapsed ALL of these to "2001:db8:" - distinct hosts in different /64s must differ now
   assert.notEqual(normalizeIp('2001:db8::1'), normalizeIp('2001:db8:0:1::1'));
   assert.equal(normalizeIp('::1'), '0:0:0:0::/64');
   assert.equal(normalizeIp(''), 'unknown');

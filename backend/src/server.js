@@ -19,7 +19,7 @@ let shuttingDown = false;
 async function shutdown(signal, code = 0) {
   if (shuttingDown) return;
   shuttingDown = true;
-  console.log(`[server] ${signal} — shutting down`);
+  console.log(`[server] ${signal} - shutting down`);
   const force = setTimeout(() => { console.error('[server] forced exit'); process.exit(1); }, 15000);
   force.unref();
   try {

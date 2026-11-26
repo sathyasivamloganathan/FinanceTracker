@@ -189,7 +189,7 @@ export default function BudgetSection() {
         <div className="flex items-end gap-3 flex-wrap">
           <Field label="Category">
             <select className={`${inputClass} w-44`} value={addingCat} onChange={e => setAddingCat(e.target.value)}>
-              <option value="">— Select —</option>
+              <option value="">- Select -</option>
               {EXPENSE_CATEGORIES.filter(c => !monthBudget[c]).map(c => <option key={c}>{c}</option>)}
             </select>
           </Field>

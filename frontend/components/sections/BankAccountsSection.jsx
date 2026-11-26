@@ -163,7 +163,7 @@ export default function BankAccountsSection() {
           {selectedAcct && (
             <>
               <SectionTitle action={<button onClick={() => setSelectedAcct(null)} className="text-xs text-clay hover:underline">✕ Close</button>}>
-                {selectedAcct.name} — transaction history
+                {selectedAcct.name} - transaction history
               </SectionTitle>
               {drillHistory.length ? (
                 <Card padded={false} className="overflow-x-auto mb-4">
@@ -178,8 +178,8 @@ export default function BankAccountsSection() {
                             <td className="mono text-inkMuted dark:text-gray-400 whitespace-nowrap text-xs">{e.date}</td>
                             <td><Tag tone={TYPE_TONE[eType] || 'def'}>{TYPE_LABEL[eType] || eType}</Tag></td>
                             <td><Tag>{e.category}</Tag></td>
-                            <td className="text-ink dark:text-gray-200 text-[12.5px] max-w-[150px]">{cleanDescription(e.description) || '—'}</td>
-                            <td className="text-inkMuted dark:text-gray-500 text-xs">{e.notes || '—'}</td>
+                            <td className="text-ink dark:text-gray-200 text-[12.5px] max-w-[150px]">{cleanDescription(e.description) || '-'}</td>
+                            <td className="text-inkMuted dark:text-gray-500 text-xs">{e.notes || '-'}</td>
                             <td className={`num font-mono ${isIncome ? 'text-emerald' : 'text-ink dark:text-gray-100'}`}>
                               <Amount>{isIncome ? '+' : ''}{fmtINR(e.amount)}</Amount>
                             </td>
@@ -244,13 +244,13 @@ export default function BankAccountsSection() {
         <div className="grid grid-cols-2 gap-3 mb-3">
           <Field label="From account">
             <select className={inputClass} value={txForm.fromId} onChange={e => setTxForm({ ...txForm, fromId: e.target.value })}>
-              <option value="">— Select —</option>
+              <option value="">- Select -</option>
               {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({fmtINR(a.balance)})</option>)}
             </select>
           </Field>
           <Field label="To account">
             <select className={inputClass} value={txForm.toId} onChange={e => setTxForm({ ...txForm, toId: e.target.value })}>
-              <option value="">— Select —</option>
+              <option value="">- Select -</option>
               {accounts.filter(a => a.id !== txForm.fromId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </Field>
@@ -272,7 +272,7 @@ export default function BankAccountsSection() {
         <div className="grid grid-cols-2 gap-3 mb-3">
           <Field label="From account">
             <select className={inputClass} value={atmForm.fromId} onChange={e => setAtmForm({ ...atmForm, fromId: e.target.value })}>
-              <option value="">— Select —</option>
+              <option value="">- Select -</option>
               {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({fmtINR(a.balance)})</option>)}
             </select>
           </Field>
@@ -294,7 +294,7 @@ export default function BankAccountsSection() {
         <div className="grid grid-cols-2 gap-3 mb-3">
           <Field label="Credit to account">
             <select className={inputClass} value={incForm.toId} onChange={e => setIncForm({ ...incForm, toId: e.target.value })}>
-              <option value="">— Select —</option>
+              <option value="">- Select -</option>
               {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </Field>

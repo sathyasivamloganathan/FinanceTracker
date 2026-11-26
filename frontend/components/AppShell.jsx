@@ -25,12 +25,12 @@ function VerifyBanner() {
   const [sent, setSent] = useState(false);
   if (!user || user.emailVerified) return null;
   async function resend() {
-    try { await api.post('/api/auth/resend-verification', {}); setSent(true); notify('Verification e-mail sent — check your inbox.', 'info'); }
+    try { await api.post('/api/auth/resend-verification', {}); setSent(true); notify('Verification e-mail sent - check your inbox.', 'info'); }
     catch (e) { notify(e.message); }
   }
   return (
     <div className="bg-warnBg text-warn dark:bg-amber-950 dark:text-amber-200 text-[12.5px] px-4 md:px-8 py-2 flex items-center gap-3 flex-wrap" role="status">
-      <span>Please confirm your e-mail address ({user.email}) — we sent you a link.</span>
+      <span>Please confirm your e-mail address ({user.email}) - we sent you a link.</span>
       <button type="button" onClick={resend} disabled={sent} className="underline font-semibold disabled:opacity-50">{sent ? 'Sent' : 'Resend verification'}</button>
     </div>
   );
@@ -38,11 +38,11 @@ function VerifyBanner() {
 
 export default function AppShell({ children, section }) {
   const { user, loading } = useAuth();
-  // mounted ensures we never SSR the shell — avoids hydration mismatch entirely
+  // mounted ensures we never SSR the shell - avoids hydration mismatch entirely
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // Auth still checking (or before mount) — show a neutral skeleton instead of a blank page
+  // Auth still checking (or before mount) - show a neutral skeleton instead of a blank page
   if (!mounted || loading) {
     return (
       <div className="flex min-h-screen bg-paper">
@@ -63,7 +63,7 @@ export default function AppShell({ children, section }) {
     );
   }
 
-  // Not logged in — just render children (login/register page)
+  // Not logged in - just render children (login/register page)
   if (!user) return <>{children}</>;
 
   return (

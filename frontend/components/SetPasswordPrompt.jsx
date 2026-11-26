@@ -26,7 +26,7 @@ export default function SetPasswordPrompt() {
   return (
     <Modal open={showSetPassword} onClose={() => setShowSetPassword(false)} title="Set a password">
       <p className="text-[13px] text-inkMuted mb-4">
-        You signed in with Google — set a password too so you can also log in directly with your email, or if you ever want to
+        You signed in with Google - set a password too so you can also log in directly with your email, or if you ever want to
         disconnect Google. You can skip this and do it later from Settings.
       </p>
       <div className="space-y-3">

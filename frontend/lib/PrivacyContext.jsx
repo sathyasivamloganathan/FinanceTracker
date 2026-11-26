@@ -29,7 +29,7 @@ export function usePrivacy() {
   return ctx;
 }
 
-// Wrap any monetary value — when hidden shows ••••
+// Wrap any monetary value - when hidden shows ••••
 export function Amount({ children }) {
   const { hidden } = usePrivacy();
   if (hidden) return <span className="select-none tracking-widest text-inkMuted dark:text-gray-500" aria-label="Hidden amount">••••</span>;

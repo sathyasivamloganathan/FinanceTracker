@@ -37,7 +37,7 @@ export default function LiabilitiesSection() {
   return (
     <>
       <p className="text-inkMuted text-[13.5px] max-w-xl mb-4">
-        Loans and debts you owe — these subtract from your net worth under Wealth → Net Worth, and feed the debt ratio on the
+        Loans and debts you owe - these subtract from your net worth under Wealth → Net Worth, and feed the debt ratio on the
         Health Check.
       </p>
       <Card className="mb-5">
@@ -69,7 +69,7 @@ export default function LiabilitiesSection() {
                   <td>
                     <Tag tone="sell">{l.type}</Tag>
                   </td>
-                  <td className="num">{l.interestRate ? `${l.interestRate}%` : '—'}</td>
+                  <td className="num">{l.interestRate ? `${l.interestRate}%` : '-'}</td>
                   <td className="num">
                     <EditableNumber value={l.amount} onCommit={(val) => updateLiability(l.id, { amount: val })} className={`${inputClass} w-[130px] text-right`} />
                   </td>
@@ -84,7 +84,7 @@ export default function LiabilitiesSection() {
           </table>
         </Card>
       ) : (
-        <EmptyState title="No liabilities tracked">Add a loan or debt if you have any — it's fine to leave this empty.</EmptyState>
+        <EmptyState title="No liabilities tracked">Add a loan or debt if you have any - it's fine to leave this empty.</EmptyState>
       )}
 
       <div className="mt-4">
@@ -96,7 +96,7 @@ export default function LiabilitiesSection() {
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Add a liability">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
           <Field label="Name">
-            <input className={inputClass} placeholder="e.g. Home Loan — SBI" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <input className={inputClass} placeholder="e.g. Home Loan - SBI" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </Field>
           <Field label="Type">
             <select className={inputClass} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>

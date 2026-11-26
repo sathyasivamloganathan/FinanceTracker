@@ -44,7 +44,7 @@ router.post('/', mutating(async (req, res) => {
   res.status(201).json(reply(req.user));
 }));
 
-// Manual rate override — strict: blank / non-numeric input is rejected rather
+// Manual rate override - strict: blank / non-numeric input is rejected rather
 // than silently setting the rate to 0.
 router.patch('/:id/rate', mutating(async (req, res) => {
   V.objectId(req.params.id);
@@ -82,7 +82,7 @@ router.post('/:id/sync-now', syncLimiter, mutating(async (req, res) => {
   if (holding.assetType === 'Stock' && !holding.symbol) {
     return res.status(400).json({ error: 'Add a symbol first (e.g. "NSE:GOLDBEES" or "DATAPATTNS").' });
   }
-  if (holding.assetType === 'Gold') return res.status(400).json({ error: 'Gold has no auto-sync source — update the rate manually.' });
+  if (holding.assetType === 'Gold') return res.status(400).json({ error: 'Gold has no auto-sync source - update the rate manually.' });
   await syncHolding(holding);
   await req.user.save();
   res.json(reply(req.user));

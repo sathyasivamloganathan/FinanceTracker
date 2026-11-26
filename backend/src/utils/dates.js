@@ -39,8 +39,8 @@ const FREQ = {
   yearly: { months: 12 },
 };
 
-// k-th occurrence counted from the ORIGINAL start date — never from the
-// previous occurrence — so month-end clamping does not accumulate drift.
+// k-th occurrence counted from the ORIGINAL start date - never from the
+// previous occurrence - so month-end clamping does not accumulate drift.
 function occurrence(startDate, frequency, k) {
   const f = FREQ[frequency];
   if (!f) throw new Error(`Unknown frequency ${frequency}`);

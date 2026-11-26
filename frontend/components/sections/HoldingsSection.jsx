@@ -34,7 +34,7 @@ export default function HoldingsSection() {
   const mfs = state.holdings.filter((h) => h.assetType === 'Mutual Fund');
   const golds = state.holdings.filter((h) => h.assetType === 'Gold');
 
-  // Gold Bees is a stock (ETF) but tracks gold — separate it
+  // Gold Bees is a stock (ETF) but tracks gold - separate it
   const goldBees = stocks.filter((h) => (h.name + h.symbol).toLowerCase().includes('goldbees') || (h.name + h.symbol).toLowerCase().includes('gold bees'));
   const pureStocks = stocks.filter((h) => !goldBees.find((g) => g.id === h.id));
 
@@ -83,7 +83,7 @@ export default function HoldingsSection() {
   return (
     <>
       <p className="text-inkMuted dark:text-gray-400 text-[13.5px] max-w-xl mb-5">
-        For stocks, paste the symbol Google shows — e.g. <b>NSE:GOLDBEES</b> or <b>DATAPATTNS</b>. For mutual funds, leave symbol blank and it&apos;s matched by name. Rates refresh once a day.
+        For stocks, paste the symbol Google shows - e.g. <b>NSE:GOLDBEES</b> or <b>DATAPATTNS</b>. For mutual funds, leave symbol blank and it&apos;s matched by name. Rates refresh once a day.
       </p>
 
       {/* ── Investment totals by category ── */}
@@ -160,7 +160,7 @@ export default function HoldingsSection() {
                       <div className="text-inkMuted dark:text-gray-500 text-xs">
                         <button className="hover:underline" onClick={() => setEditSymbolFor(h)}>
                           {h.symbol || 'add symbol'}
-                        </button>{' '}· Updated {h.updatedAt || '—'}
+                        </button>{' '}· Updated {h.updatedAt || '-'}
                       </div>
                     </td>
                     <td><Tag tone={h.assetType === 'Stock' ? 'stock' : h.assetType === 'Gold' ? 'gold' : 'mf'}>{h.assetType}</Tag></td>
@@ -209,7 +209,7 @@ export default function HoldingsSection() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Log a purchase">
         <p className="text-[12px] text-inkMuted mb-3">
-          Buying more of something you already hold? Use the same name and type — it merges with a weighted-average rate.
+          Buying more of something you already hold? Use the same name and type - it merges with a weighted-average rate.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
           <Field label="Instrument name">
@@ -226,7 +226,7 @@ export default function HoldingsSection() {
           </Field>
         </div>
         <Field label="Symbol (optional, enables auto-sync)"
-          hint={form.assetType === 'Mutual Fund' ? 'Usually leave blank — matched by fund name.' : form.assetType === 'Stock' ? 'e.g. "NSE:GOLDBEES" or "DATAPATTNS"' : 'Gold has no free auto-sync source.'}>
+          hint={form.assetType === 'Mutual Fund' ? 'Usually leave blank - matched by fund name.' : form.assetType === 'Stock' ? 'e.g. "NSE:GOLDBEES" or "DATAPATTNS"' : 'Gold has no free auto-sync source.'}>
           <input className={inputClass} placeholder="e.g. NSE:GOLDBEES" value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value })} />
         </Field>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
@@ -246,7 +246,7 @@ export default function HoldingsSection() {
         </ModalActions>
       </Modal>
 
-      <Modal open={!!historyFor} onClose={() => setHistoryFor(null)} title={`Purchase history — ${historyFor?.name || ''}`}>
+      <Modal open={!!historyFor} onClose={() => setHistoryFor(null)} title={`Purchase history - ${historyFor?.name || ''}`}>
         {historyRows.length ? (
           <table>
             <thead><tr><th>Date</th><th>Type</th><th className="num">Qty</th><th className="num">Rate</th><th className="num">Amount</th></tr></thead>

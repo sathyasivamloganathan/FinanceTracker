@@ -16,6 +16,7 @@ function createApp() {
   app.get('/api/health', (req, res) => res.json({ ok: true }));
   app.get('/api/ready', (req, res) => (isDbReady() ? res.json({ ok: true }) : res.status(503).json({ ok: false })));
 
+  app.use('/api/cron',          require('./routes/cron.routes'));   // secret-protected triggers for external schedulers
   app.use('/api/auth',          require('./routes/auth.routes'));
   app.use('/api/data',          requireAuth, require('./routes/data.routes'));
   app.use('/api/holdings',      requireAuth, writeLimiter, require('./routes/holdings.routes'));

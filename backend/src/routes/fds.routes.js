@@ -65,7 +65,7 @@ router.patch('/:id', mutating(async (req, res) => {
   if (b.compounding !== undefined) { fd.compounding = V.oneOf(b.compounding, COMPOUNDING, { field: 'compounding', required: true }); recompute = true; }
   if (b.autoRenew !== undefined) fd.autoRenew = V.bool(b.autoRenew, { field: 'autoRenew' });
   if (b.notes !== undefined) fd.notes = V.str(b.notes, { field: 'notes', max: 300 });
-  // Status can only be moved by closing (POST /:id/close) — except undoing an early closure.
+  // Status can only be moved by closing (POST /:id/close) - except undoing an early closure.
   if (b.status !== undefined) {
     const s = V.oneOf(b.status, ['active', 'broken'], { field: 'status', required: true });
     if (s !== fd.status) {

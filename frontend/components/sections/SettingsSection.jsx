@@ -159,7 +159,7 @@ export default function SettingsSection() {
       <Card className="dark:bg-gray-800 dark:border-gray-700">
         <ul className="text-[13px] text-inkMuted dark:text-gray-400 space-y-1.5 list-disc pl-4 mb-4">
           <li>Sessions last 7 days and can be revoked at any time.</li>
-          <li>The session cookie is httpOnly — page scripts cannot read it.</li>
+          <li>The session cookie is httpOnly - page scripts cannot read it.</li>
           <li>Passwords are bcrypt-hashed and never stored in plain text.</li>
         </ul>
         <div className="flex gap-2 flex-wrap">
@@ -169,7 +169,7 @@ export default function SettingsSection() {
       </Card>
 
       <Modal open={delOpen} onClose={() => setDelOpen(false)} title="Delete your account">
-        <p className="text-[13px] text-inkMuted mb-3">This permanently erases your account and every record in it. It cannot be undone — export your data first if you want a copy.</p>
+        <p className="text-[13px] text-inkMuted mb-3">This permanently erases your account and every record in it. It cannot be undone - export your data first if you want a copy.</p>
         <div className="space-y-3">
           {user?.hasPassword && <Field label="Your password"><input type="password" autoComplete="current-password" className={inputClass} value={delPw} onChange={(e) => setDelPw(e.target.value)} /></Field>}
           <Field label="Type DELETE to confirm"><input className={inputClass} value={delConfirm} onChange={(e) => setDelConfirm(e.target.value)} autoComplete="off" /></Field>

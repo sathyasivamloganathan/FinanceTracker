@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * Stand-alone job runner — run scheduled work from ANY scheduler (Azure WebJob /
+ * Stand-alone job runner - run scheduled work from ANY scheduler (Azure WebJob /
  * Container Apps job, GitHub Actions cron, Render/Railway cron, system cron) instead
  * of inside the web server. Set RUN_JOBS=false on the web app so it doesn't also run them.
  *
@@ -36,7 +36,7 @@ async function main() {
     if (!arg) throw new Error('usage: node src/jobs/run.js test-email you@example.com');
     const v = await mail.verifySmtp();
     if (!v.ok) { console.log(`SMTP FAILED: ${v.error}`); process.exitCode = 1; return; }
-    const info = await mail.sendMail({ to: arg, subject: 'Vantage test e-mail', text: 'If you can read this, SMTP works.', html: '<p>If you can read this, SMTP works.</p>' });
+    const info = await mail.sendMail({ to: arg, subject: 'FinanceTracer test e-mail', text: 'If you can read this, SMTP works.', html: '<p>If you can read this, SMTP works.</p>' });
     console.log('Accepted by SMTP server:', JSON.stringify({ accepted: info.accepted, rejected: info.rejected, response: info.response }));
     return;
   }

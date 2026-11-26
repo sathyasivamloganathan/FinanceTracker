@@ -79,7 +79,7 @@ router.post('/login', authLimiter, perEmailLimiter, asyncHandler(async (req, res
 
   if (!user || !user.passwordHash || locked || !ok) {
     if (user && user.passwordHash && !locked) {
-      // Atomic increment — parallel guesses cannot skip the counter.
+      // Atomic increment - parallel guesses cannot skip the counter.
       const after = await User.findOneAndUpdate({ _id: user._id }, { $inc: { failedLoginAttempts: 1 } }, { new: true }).select('failedLoginAttempts');
       if (after && after.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
         await User.updateOne({ _id: user._id }, { $set: { lockUntil: new Date(Date.now() + LOCK_DURATION_MS), failedLoginAttempts: 0 } });
@@ -202,7 +202,7 @@ router.get('/unsubscribe', ipSensitiveLimiter(30), asyncHandler(async (req, res)
     }
   } catch { /* invalid or expired */ }
   res.status(ok ? 200 : 400).type('text/plain').send(ok
-    ? 'You have been unsubscribed from Vantage e-mails. You can turn them back on in Settings.'
+    ? 'You have been unsubscribed from FinanceTracer e-mails. You can turn them back on in Settings.'
     : 'This unsubscribe link is invalid or has expired. Sign in and change e-mail settings in Settings.');
 }));
 

@@ -60,7 +60,7 @@ export function holdingCurrentValue(h) {
 
 const FD_COMPOUNDING_N = { Monthly: 12, Quarterly: 4, 'Half-yearly': 2, Yearly: 1 };
 
-// Value of an FD after `days` — identical to the server's calculation.
+// Value of an FD after `days` - identical to the server's calculation.
 export function fdValueAfterDays(principal, ratePct, days, compounding) {
   const p = Number(principal) || 0;
   const r = (Number(ratePct) || 0) / 100;
@@ -160,7 +160,7 @@ export function emergencyFundMonths(state) {
   return liquidCash(state) / expense;
 }
 
-// Years-to-financial-independence lookup, by savings rate — same reference
+// Years-to-financial-independence lookup, by savings rate - same reference
 // table shape as common FIRE calculators (25x annual expenses target).
 export const FI_TABLE = [
   { rate: 10, years: 51 },
@@ -214,7 +214,7 @@ export function recommendedTermCover(annualIncome, liabilities, grossAssetsVal) 
   return Math.max(0, annualIncome * 10 + (Number(liabilities) || 0) - (Number(grossAssetsVal) || 0));
 }
 
-// Amount put into market holdings (cost basis) — matches the server's `invested`.
+// Amount put into market holdings (cost basis) - matches the server's `invested`.
 export function totalInvested(state) {
   return (state.holdings || []).reduce((s, x) => s + holdingInvestedValue(x), 0);
 }
